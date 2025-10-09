@@ -14,7 +14,7 @@ export default function Home() {
       <header className="flex justify-between items-center px-8 py-4 bg-white border-b border-gray-200">
         <h1 className="text-2xl font-bold text-purple-700">ProLearn AI</h1>
         <nav className="flex items-center gap-8">
-          <a href="aboutus" className="hover:text-purple-700">About Us</a>
+          <a href="/aboutus" className="hover:text-purple-700">About Us</a>
 
           {/* Login dropdown */}
           <div className="relative">
