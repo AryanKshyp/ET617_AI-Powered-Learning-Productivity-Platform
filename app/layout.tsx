@@ -2,15 +2,15 @@ import './globals.css'
 import React from 'react'
 
 export const metadata = {
-  title: 'Learnify',
-  description: 'Read papers, make quizzes, play games — Learnify'
+  title: 'ProLearn AI - AI-Powered Learning Platform',
+  description: 'Transform education with AI-powered personalized learning experiences. Bridge the gap between teaching and learning for a smarter future.'
 }
 
 export default function RootLayout({ children } : { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className='bg-slate-50 min-h-screen'>
-        <main className='max-w-6xl mx-auto px-6 py-8'>{children}</main>
+      <body className='min-h-screen'>
+        {children}
       </body>
     </html>
   )

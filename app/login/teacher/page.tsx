@@ -4,14 +4,62 @@ import classroom from "@/public/classroom.png";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function TeacherLogin() {
     const [open, setOpen] = useState(false);
     const router = useRouter();
 
-    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const [name, setName] = useState("");
+    const [Institute, setInstitute] = useState("");
+    const [email, setEmail] = useState("");
+    const [employeeId, setEmployeeId] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        router.push("/dashboard");
+        setMessage(null);
+        setError(null);
+        if (!email) {
+            setError("Email is required");
+            return;
+        }
+        setLoading(true);
+        try {
+            const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+
+            await fetch("/api/track", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    event_name: "login_attempt",
+                    component: "teacher_login_form",
+                    event_context: "teacher",
+                    description: "Teacher login initiated via magic link",
+                    metadata: { name, Institute, email, employeeId },
+                }),
+            });
+
+            const { error: signInError } = await supabase.auth.signInWithOtp({
+                email,
+                options: {
+                    data: { role: "teacher", name, Institute, employeeId },
+                    emailRedirectTo: origin ? `${origin}/dashboard` : undefined,
+                },
+            });
+
+            if (signInError) {
+                setError(signInError.message);
+                return;
+            }
+            setMessage("Check your email for the login link.");
+        } catch (e: any) {
+            setError(e?.message || "Login failed");
+        } finally {
+            setLoading(false);
+        }
     };
     return (
         <div className="min-h-screen flex flex-col bg-white text-gray-900 font-sans">
@@ -57,29 +105,31 @@ export default function TeacherLogin() {
                 {/* Right: Form */}
                 <div className="lg:w-1/2 max-w-md bg-gray-50 p-6 rounded-xl shadow">
                     <h2 className="text-2xl font-bold mb-6 text-center">Login Into Your Teacher Account</h2>
-                    <form className="space-y-4">
+                    <form className="space-y-4" onSubmit={handleSubmit}>
                         <div>
                             <label className="block mb-1">Name</label>
-                            <input type="text" className="w-full border px-3 py-2 rounded-md" />
+                            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full border px-3 py-2 rounded-md" />
                         </div>
                         <div>
-                            <label className="block mb-1">Surname</label>
-                            <input type="text" className="w-full border px-3 py-2 rounded-md" />
+                            <label className="block mb-1">Institute</label>
+                            <input type="text" value={Institute} onChange={(e) => setInstitute(e.target.value)} className="w-full border px-3 py-2 rounded-md" />
                         </div>
                         <div>
                             <label className="block mb-1">Email</label>
-                            <input type="email" className="w-full border px-3 py-2 rounded-md" />
+                            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full border px-3 py-2 rounded-md" />
                         </div>
                         <div>
                             <label className="block mb-1">Employee ID</label>
-                            <input type="text" className="w-full border px-3 py-2 rounded-md" />
+                            <input type="text" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-full border px-3 py-2 rounded-md" />
                         </div>
+                        {error && <p className="text-red-600 text-sm">{error}</p>}
+                        {message && <p className="text-green-700 text-sm">{message}</p>}
                         <button
                             type="submit"
-                            onClick={handleClick}
-                            className="w-full py-2 bg-purple-700 text-white rounded-lg hover:bg-purple-800"
+                            disabled={loading}
+                            className="w-full py-2 bg-purple-700 text-white rounded-lg hover:bg-purple-800 disabled:opacity-60"
                         >
-                            Submit
+                            {loading ? "Sending Link..." : "Submit"}
                         </button>
                     </form>
                 </div>
