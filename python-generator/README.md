@@ -1,4 +1,4 @@
-# Learnify Python Generator
+# ProLearnAI Python Generator
 
 A minimal FastAPI service you can paste your generation logic into.
 

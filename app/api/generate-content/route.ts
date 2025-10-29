@@ -26,8 +26,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Content generation only supported for PDF files' }, { status: 400 });
     }
 
-    // Call Python generator service
-    const pythonGeneratorUrl = process.env.NEXT_PUBLIC_PYTHON_GENERATOR_URL || 'http://localhost:8000';
+    // Call Python generator service (expects full endpoint URL, e.g., http://localhost:8000/generate)
+    const pythonGeneratorUrl = process.env.NEXT_PUBLIC_PYTHON_GENERATOR_URL || 'http://localhost:8000/generate';
     
     let generationRequest;
     
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       };
     }
 
-    const pythonResponse = await fetch(`${pythonGeneratorUrl}/generate`, {
+    const pythonResponse = await fetch(pythonGeneratorUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(generationRequest)
