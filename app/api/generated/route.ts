@@ -5,8 +5,23 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
     const material_id = searchParams.get('material_id')
-    if (!material_id) return NextResponse.json({ error: 'material_id required' }, { status: 400 })
-    const { data, error } = await supabaseAdmin.from('generated_items').select('*').eq('material_id', material_id).order('created_at', { ascending: false })
+    const course_id = searchParams.get('course_id')
+    
+    // Support querying by either material_id or course_id
+    if (!material_id && !course_id) {
+      return NextResponse.json({ error: 'material_id or course_id required' }, { status: 400 })
+    }
+    
+    let query = supabaseAdmin.from('generated_items').select('*')
+    
+    if (material_id) {
+      query = query.eq('material_id', material_id)
+    }
+    if (course_id) {
+      query = query.eq('course_id', course_id)
+    }
+    
+    const { data, error } = await query.order('created_at', { ascending: false })
     if (error) return NextResponse.json({ error: String(error) }, { status: 500 })
     return NextResponse.json({ data })
   } catch (e) {

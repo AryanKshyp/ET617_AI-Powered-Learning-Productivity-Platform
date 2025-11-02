@@ -8,14 +8,27 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const course_id = searchParams.get('course_id')
     const section_id = searchParams.get('section_id')
-    if (!course_id) return NextResponse.json({ error: 'course_id required' }, { status: 400 })
+    
+    if (!course_id) {
+      return NextResponse.json({ error: 'course_id required' }, { status: 400 })
+    }
+    
     let query = supabaseAdmin.from('materials').select('*').eq('course_id', course_id)
-    if (section_id) query = query.eq('section_id', section_id)
+    if (section_id) {
+      query = query.eq('section_id', section_id)
+    }
+    
     const { data, error } = await query.order('created_at', { ascending: false })
-    if (error) return NextResponse.json({ error: String(error) }, { status: 500 })
-    return NextResponse.json({ data })
-  } catch (e) {
-    return NextResponse.json({ error: 'failed to fetch materials' }, { status: 500 })
+    
+    if (error) {
+      console.error('Materials fetch error:', error)
+      return NextResponse.json({ error: String(error) }, { status: 500 })
+    }
+    
+    return NextResponse.json({ data: data || [] })
+  } catch (e: any) {
+    console.error('Materials fetch exception:', e)
+    return NextResponse.json({ error: e?.message || 'failed to fetch materials' }, { status: 500 })
   }
 }
 
