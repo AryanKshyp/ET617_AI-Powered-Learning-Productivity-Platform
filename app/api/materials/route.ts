@@ -39,7 +39,15 @@ export async function POST(req: Request) {
         contentType: file.type || 'application/octet-stream', 
         upsert: false 
       })
-      if (upErr) return NextResponse.json({ error: upErr.message }, { status: 400 })
+      if (upErr) {
+        // Provide a more helpful error message if bucket doesn't exist
+        if (upErr.message?.toLowerCase().includes('bucket') || upErr.message?.toLowerCase().includes('not found')) {
+          return NextResponse.json({ 
+            error: `Storage bucket 'materials' not found. Please create it in your Supabase dashboard: Storage > New bucket > Name: 'materials' > Public: Yes (or configure RLS policies)`
+          }, { status: 400 })
+        }
+        return NextResponse.json({ error: upErr.message }, { status: 400 })
+      }
       
       // Determine material type
       const material_type = (file.type || '').split('/')[1] || 'file'

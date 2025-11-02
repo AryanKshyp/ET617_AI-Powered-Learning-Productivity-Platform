@@ -23,11 +23,23 @@ export async function POST(req: Request) {
     })
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      // Extract error message - handle different error formats from Supabase
+      const errorMsg = error.message || String(error) || 'Unknown storage error'
+      
+      // Provide a more helpful error message if bucket doesn't exist
+      if (errorMsg.toLowerCase().includes('bucket') || errorMsg.toLowerCase().includes('not found')) {
+        return NextResponse.json({ 
+          error: `Storage bucket 'pdfs' not found. Please create it in your Supabase dashboard: Storage > New bucket > Name: 'pdfs' > Public: Yes (or configure RLS policies)`
+        }, { status: 400 })
+      }
+      return NextResponse.json({ error: errorMsg }, { status: 400 })
     }
 
     return NextResponse.json({ ok: true, path })
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Upload failed' }, { status: 500 })
+    // Ensure we always return a string error message
+    const errorMsg = e?.message || String(e) || 'Upload failed'
+    console.error('Upload API error:', e)
+    return NextResponse.json({ error: errorMsg }, { status: 500 })
   }
 }

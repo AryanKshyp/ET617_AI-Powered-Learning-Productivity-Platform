@@ -37,16 +37,46 @@ export default function PDFUploader({ onUpload } : { onUpload?: (path: string)=>
 				method: 'POST',
 				body: form
 			})
-			const json = await res.json()
+			
+			let json
+			try {
+				json = await res.json()
+			} catch (parseError) {
+				console.error('Failed to parse response:', parseError)
+				throw new Error(`Server error: ${res.status} ${res.statusText}`)
+			}
+			
 			if (!res.ok) {
-				throw new Error(json.error || 'Upload failed')
+				// Extract error message properly - handle both string and object errors
+				let errorMessage = 'Upload failed'
+				if (json.error) {
+					if (typeof json.error === 'string') {
+						errorMessage = json.error
+					} else if (json.error.message) {
+						errorMessage = json.error.message
+					} else {
+						errorMessage = JSON.stringify(json.error)
+					}
+				}
+				throw new Error(errorMessage)
 			}
 
 			alert('PDF uploaded successfully!')
 			onUpload && onUpload(json.path)
 		} catch (error: any) {
 			console.error('Upload error:', error)
-			alert(`Upload failed: ${error.message || error}`)
+			// Safely extract error message
+			let errorMessage = 'Upload failed'
+			if (error instanceof Error) {
+				errorMessage = error.message
+			} else if (typeof error === 'string') {
+				errorMessage = error
+			} else if (error?.message) {
+				errorMessage = error.message
+			} else if (error) {
+				errorMessage = String(error)
+			}
+			alert(`Upload failed: ${errorMessage}`)
 		} finally {
 			setLoading(false)
 		}
