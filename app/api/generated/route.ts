@@ -7,8 +7,12 @@ export async function GET(req: Request) {
     const material_id = searchParams.get('material_id')
     const course_id = searchParams.get('course_id')
     
+    // Log for debugging
+    console.log('Generated GET - material_id:', material_id, 'course_id:', course_id)
+    
     // Support querying by either material_id or course_id
     if (!material_id && !course_id) {
+      console.error('Generated GET - Missing both material_id and course_id')
       return NextResponse.json({ error: 'material_id or course_id required' }, { status: 400 })
     }
     
@@ -22,10 +26,17 @@ export async function GET(req: Request) {
     }
     
     const { data, error } = await query.order('created_at', { ascending: false })
-    if (error) return NextResponse.json({ error: String(error) }, { status: 500 })
-    return NextResponse.json({ data })
-  } catch (e) {
-    return NextResponse.json({ error: 'failed to fetch generated items' }, { status: 500 })
+    
+    if (error) {
+      console.error('Generated GET - Supabase error:', error)
+      return NextResponse.json({ error: String(error) }, { status: 500 })
+    }
+    
+    console.log('Generated GET - Success, returning', data?.length || 0, 'items')
+    return NextResponse.json({ data: data || [] })
+  } catch (e: any) {
+    console.error('Generated GET - Exception:', e)
+    return NextResponse.json({ error: e?.message || 'failed to fetch generated items' }, { status: 500 })
   }
 }
 

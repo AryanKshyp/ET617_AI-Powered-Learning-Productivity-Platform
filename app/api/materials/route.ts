@@ -9,7 +9,10 @@ export async function GET(req: Request) {
     const course_id = searchParams.get('course_id')
     const section_id = searchParams.get('section_id')
     
+    console.log('Materials GET - course_id:', course_id, 'section_id:', section_id)
+    
     if (!course_id) {
+      console.error('Materials GET - Missing course_id')
       return NextResponse.json({ error: 'course_id required' }, { status: 400 })
     }
     
@@ -21,14 +24,21 @@ export async function GET(req: Request) {
     const { data, error } = await query.order('created_at', { ascending: false })
     
     if (error) {
-      console.error('Materials fetch error:', error)
-      return NextResponse.json({ error: String(error) }, { status: 500 })
+      console.error('Materials GET - Supabase error:', JSON.stringify(error, null, 2))
+      return NextResponse.json({ 
+        error: error.message || String(error),
+        details: error 
+      }, { status: 500 })
     }
     
+    console.log('Materials GET - Success, returning', data?.length || 0, 'materials')
     return NextResponse.json({ data: data || [] })
   } catch (e: any) {
-    console.error('Materials fetch exception:', e)
-    return NextResponse.json({ error: e?.message || 'failed to fetch materials' }, { status: 500 })
+    console.error('Materials GET - Exception:', e)
+    return NextResponse.json({ 
+      error: e?.message || 'failed to fetch materials',
+      details: String(e)
+    }, { status: 500 })
   }
 }
 
@@ -98,8 +108,12 @@ export async function POST(req: Request) {
       if (error) return NextResponse.json({ error: String(error) }, { status: 500 })
       return NextResponse.json({ data })
     }
-  } catch (e) {
-    return NextResponse.json({ error: 'failed to create material' }, { status: 500 })
+  } catch (e: any) {
+    console.error('Materials POST - Exception:', e)
+    return NextResponse.json({ 
+      error: e?.message || 'failed to create material',
+      details: String(e)
+    }, { status: 500 })
   }
 }
 
