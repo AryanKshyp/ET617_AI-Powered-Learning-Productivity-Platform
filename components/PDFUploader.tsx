@@ -47,16 +47,28 @@ export default function PDFUploader({ onUpload } : { onUpload?: (path: string)=>
 			}
 			
 			if (!res.ok) {
+				// Log the full response for debugging
+				console.error('Upload API error response:', json)
+				
 				// Extract error message properly - handle both string and object errors
 				let errorMessage = 'Upload failed'
-				if (json.error) {
+				if (json?.error) {
 					if (typeof json.error === 'string') {
 						errorMessage = json.error
-					} else if (json.error.message) {
-						errorMessage = json.error.message
+					} else if (json.error?.message) {
+						errorMessage = String(json.error.message)
+					} else if (json.error?.error) {
+						errorMessage = typeof json.error.error === 'string' ? json.error.error : String(json.error.error)
 					} else {
-						errorMessage = JSON.stringify(json.error)
+						// Try to stringify, but catch if it fails
+						try {
+							errorMessage = JSON.stringify(json.error)
+						} catch {
+							errorMessage = String(json.error)
+						}
 					}
+				} else if (json?.message) {
+					errorMessage = String(json.message)
 				}
 				throw new Error(errorMessage)
 			}
@@ -64,17 +76,38 @@ export default function PDFUploader({ onUpload } : { onUpload?: (path: string)=>
 			alert('PDF uploaded successfully!')
 			onUpload && onUpload(json.path)
 		} catch (error: any) {
-			console.error('Upload error:', error)
-			// Safely extract error message
+			console.error('Upload error (full object):', error)
+			console.error('Upload error (type):', typeof error)
+			
+			// Safely extract error message - handle all possible error formats
 			let errorMessage = 'Upload failed'
 			if (error instanceof Error) {
-				errorMessage = error.message
+				errorMessage = error.message || 'Upload failed'
 			} else if (typeof error === 'string') {
 				errorMessage = error
 			} else if (error?.message) {
-				errorMessage = error.message
+				errorMessage = String(error.message)
+			} else if (error?.error) {
+				// Handle nested error objects
+				if (typeof error.error === 'string') {
+					errorMessage = error.error
+				} else if (error.error?.message) {
+					errorMessage = String(error.error.message)
+				} else {
+					try {
+						errorMessage = JSON.stringify(error.error)
+					} catch {
+						errorMessage = String(error.error)
+					}
+				}
 			} else if (error) {
-				errorMessage = String(error)
+				// Last resort - try to stringify or convert to string
+				try {
+					const stringified = JSON.stringify(error)
+					errorMessage = stringified !== '{}' ? stringified : String(error)
+				} catch {
+					errorMessage = String(error)
+				}
 			}
 			alert(`Upload failed: ${errorMessage}`)
 		} finally {
