@@ -23,7 +23,10 @@ export default function StudentLogin() {
         }
         setLoading(true);
         try {
-            const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+            // Use environment variable if available, otherwise use window.location.origin
+            // This ensures correct redirect URL in production deployments
+            const origin = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : undefined);
+            
             await fetch("/api/track", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

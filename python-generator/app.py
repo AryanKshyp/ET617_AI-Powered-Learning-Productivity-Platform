@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import os
@@ -57,6 +58,15 @@ text_splitter = RecursiveCharacterTextSplitter(
 doc_converter = DocumentConverter()
 
 app = FastAPI(title="Learnify Python Generator", version="1.0.0")
+
+# Add CORS middleware to allow requests from Next.js frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace with your Vercel domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ============================================================================
 # DATA MODELS

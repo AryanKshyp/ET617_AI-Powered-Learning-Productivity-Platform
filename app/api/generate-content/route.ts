@@ -27,7 +27,8 @@ export async function POST(req: Request) {
     }
 
     // Call Python generator service (expects full endpoint URL, e.g., http://localhost:8000/generate)
-    const pythonGeneratorUrl = process.env.NEXT_PUBLIC_PYTHON_GENERATOR_URL || 'http://localhost:8000/generate';
+    // Note: Server-side routes use process.env (not NEXT_PUBLIC_ prefix)
+    const pythonGeneratorUrl = process.env.PYTHON_GENERATOR_URL || process.env.NEXT_PUBLIC_PYTHON_GENERATOR_URL || 'http://localhost:8000/generate';
     
     let generationRequest;
     
