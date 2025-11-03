@@ -4,6 +4,7 @@ export default function Header() {
       <h1 className="text-2xl font-bold text-purple-700">ProLearn AI</h1>
       <nav className="flex gap-6">
         <a href="/dashboard" className="hover:text-purple-600">Dashboard</a>
+        <a href="/productivity" className="hover:text-purple-600">Productivity</a>
       </nav>
     </header>
   );

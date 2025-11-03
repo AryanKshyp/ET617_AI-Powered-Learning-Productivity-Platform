@@ -25,6 +25,12 @@ const features = [
     image: Quiz,
     // Add a slug or route for navigation
     href: "/dashboard/quizzes" // Placeholder path
+  },
+  {
+    title: "Productivity & Wellness",
+    description: "Focus timers, task boards, wellness tracking, games, and analytics.",
+    image: Quiz, // Using Quiz image as placeholder
+    href: "/productivity"
   }
 ];
 
@@ -32,7 +38,7 @@ const features = [
 
 export default function FeatureList() {
   return (
-    <section className="max-w-6xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-6">
+    <section className="max-w-6xl mx-auto px-6 py-12 grid md:grid-cols-2 lg:grid-cols-4 gap-6">
       {features.map((feature, i) => (
         // 1. Wrap the FeatureCard with the Link component
         <Link href={feature.href} key={i}>
