@@ -104,37 +104,35 @@ export default function MemoryGame() {
 
   const finishGame = async (finalMoves: number) => {
     setGameOver(true)
-    
+
     const { data: userData } = await supabase.auth.getUser()
     const user = userData.user
-    
+
     if (user) {
       await fetch('/api/productivity/game-score', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: user.id,
-            game_type: 'memory',
-            score: finalMoves,
-            metadata: { pairs: CARD_PAIRS },
-          }),
-        })
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          game_type: 'memory',
+          score: finalMoves,
+          metadata: { pairs: CARD_PAIRS },
+        }),
+      })
 
-        // Award XP
-        await fetch('/api/productivity/xp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: user.id,
-            amount: 30,
-            source: 'game',
-            description: 'Completed Memory Game',
-          }),
-        })
-      }
-
-      loadBestScore()
+      await fetch('/api/productivity/xp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          amount: 30,
+          source: 'game',
+          description: 'Completed Memory Game',
+        }),
+      })
     }
+
+    loadBestScore()
   }
 
   return (

@@ -1,6 +1,6 @@
-# Learnify — Clickstream & PDF Research App
+# ProLearnAI — Clickstream & PDF Research App
 
-This repository is a scaffold for **Learnify** — a Next.js + Tailwind CSS app using Supabase (PostgreSQL).
+This repository is a scaffold for **ProLearnAI** — a Next.js + Tailwind CSS app using Supabase (PostgreSQL).
 Features:
 - Supabase Auth (email/password)
 - Upload & read research PDFs (Supabase Storage)
@@ -15,7 +15,7 @@ Features:
 
 1. Clone / unzip:
    ```bash
-   unzip learnify.zip && cd learnify
+   unzip ProLearnAI.zip && cd ProLearnAI
    npm install
    ```
 
@@ -24,7 +24,7 @@ Features:
 3. Add the SQL schema in `schema/clickstream.sql` using the Supabase SQL editor, and also create the `highscores` table and enable Realtime on tables.
 
 4. Create Storage buckets in Supabase:
-   - Create a bucket named `pdfs` for general PDF uploads
+   - Create a bucket named `uploadFiles` for general PDF uploads
    - Create a bucket named `materials` for course materials
    - See `STORAGE_SETUP.md` for detailed instructions and RLS policies
 
@@ -46,7 +46,7 @@ Features:
    ```
 
 7. Visit:
-   - Landing page: `/` (Learnify)
+   - Landing page: `/` (ProLearnAI)
    - Login: `/login`
    - Upload/Reader: `/upload`
    - Dashboard: `/dashboard`

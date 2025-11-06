@@ -163,7 +163,7 @@ export default function CoursePage() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        {material.material_type === 'pdf' && (
+                        {(material.material_type === 'pdf' || material.material_type === 'note') && (
                           <button
                             onClick={() => handleGenerate(material)}
                             className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
@@ -271,6 +271,22 @@ function GenerationModal({
   const [loading, setLoading] = useState(false);
 
   const handleGenerate = async () => {
+    // Validate page range
+    if (material.material_type === 'pdf' && material.page_count) {
+      if (pageRange.start < 1 || pageRange.end < 1) {
+        alert('Page numbers must be greater than 0');
+        return;
+      }
+      if (pageRange.start > pageRange.end) {
+        alert('Start page must be less than or equal to end page');
+        return;
+      }
+      if (pageRange.end > material.page_count) {
+        alert(`End page cannot exceed total pages (${material.page_count})`);
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const settings = {
@@ -291,14 +307,18 @@ function GenerationModal({
         }),
       });
 
+      const responseData = await response.json().catch(() => ({}));
+
       if (response.ok) {
         onGenerated();
       } else {
-        alert('Failed to generate content');
+        const errorMessage = responseData.details || responseData.error || 'Failed to generate content';
+        console.error('Generation error:', responseData);
+        alert(`Error: ${errorMessage}`);
       }
     } catch (error) {
       console.error('Error generating content:', error);
-      alert('Error generating content');
+      alert(`Error generating content: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }

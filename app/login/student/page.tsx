@@ -1,149 +1,21 @@
 "use client";
-import { useState } from "react";
-import Link from "next/link";
-import { supabase } from "@/lib/supabaseClient";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function StudentLogin() {
-    const [open, setOpen] = useState(false);
-    const [name, setName] = useState("");
-    const [Institute, setInstitute] = useState("");
-    const [email, setEmail] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setMessage(null);
-        setError(null);
-
-        if (!email) {
-            setError("Email is required");
-            return;
-        }
-        setLoading(true);
-        try {
-            // Use environment variable if available, otherwise use window.location.origin
-            // This ensures correct redirect URL in production deployments
-            const origin = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : undefined);
-            
-            await fetch("/api/track", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    event_name: "login_attempt",
-                    component: "student_login_form",
-                    event_context: "student",
-                    description: "Student login initiated via magic link",
-                    metadata: { name, Institute, email },
-                }),
-            });
-
-            const { error: signInError } = await supabase.auth.signInWithOtp({
-                email,
-                options: {
-                    data: { role: "student", name, Institute },
-                    emailRedirectTo: origin ? `${origin}/dashboard` : undefined,
-                },
-            });
-
-            if (signInError) {
-                setError(signInError.message);
-                return;
-            }
-            setMessage("Check your email for the login link.");
-        } catch (e: any) {
-            setError(e?.message || "Login failed");
-        } finally {
-            setLoading(false);
-        }
-    };
+    useEffect(() => {
+        // Redirect to unified login page with student role preselected
+        router.replace("/login?role=student");
+    }, [router]);
 
     return (
-        <div className="min-h-screen flex flex-col bg-white text-gray-900 font-sans">
-            <header className="flex justify-between items-center px-8 py-4 bg-white border-b border-gray-200">
-                <h1 className="text-2xl font-bold text-purple-700">ProLearn AI</h1>
-                <nav className="flex items-center gap-8">
-                    <a href="/aboutus" className="hover:text-purple-700">About Us</a>
-
-                    {/* Login dropdown */}
-                    <div className="relative">
-                        <button
-                            onClick={() => setOpen(!open)}
-                            className="px-4 py-2 bg-purple-700 text-white rounded-lg hover:bg-purple-800"
-                        >
-                            Log In
-                        </button>
-
-                        {open && (
-                            <div className="absolute right-0 mt-2 w-40 bg-white shadow-md rounded-lg overflow-hidden">
-                                <Link
-                                    href="/login/student"
-                                    className="block px-4 py-2 hover:bg-gray-100"
-                                >
-                                    Student
-                                </Link>
-                                <Link
-                                    href="/login/teacher"
-                                    className="block px-4 py-2 hover:bg-gray-100"
-                                >
-                                    Teacher
-                                </Link>
-                            </div>
-                        )}
-                    </div>
-                </nav>
-            </header>
-            <main className="flex flex-col lg:flex-row items-center justify-center px-8 py-12 gap-8">
-                {/* Left: Image */}
-                <div className="lg:w-1/2">
-                    <img src="/classroom.png" alt="Student Login" className="rounded-lg shadow-lg" />
-                </div>
-
-                {/* Right: Form */}
-                <div className="lg:w-1/2 max-w-md bg-gray-50 p-6 rounded-xl shadow">
-                    <h2 className="text-2xl font-bold mb-6 text-center">Login Into Your Student Account</h2>
-                    <form className="space-y-4" onSubmit={handleSubmit}>
-                        <div>
-                            <label className="block mb-1">Name</label>
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="w-full border px-3 py-2 rounded-md"
-                            />
-                        </div>
-                        <div>
-                            <label className="block mb-1">Institute</label>
-                            <input
-                                type="text"
-                                value={Institute}
-                                onChange={(e) => setInstitute(e.target.value)}
-                                className="w-full border px-3 py-2 rounded-md"
-                            />
-                        </div>
-                        <div>
-                            <label className="block mb-1">Email</label>
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full border px-3 py-2 rounded-md"
-                                required
-                            />
-                        </div>
-                        {error && <p className="text-red-600 text-sm">{error}</p>}
-                        {message && <p className="text-green-700 text-sm">{message}</p>}
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full py-2 bg-purple-700 text-white rounded-lg hover:bg-purple-800 disabled:opacity-60"
-                        >
-                            {loading ? "Sending Link..." : "Submit"}
-                        </button>
-                    </form>
-                </div>
-            </main>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+            <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
+                <p className="text-gray-300">Redirecting to login...</p>
+            </div>
         </div>
     );
 }

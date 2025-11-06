@@ -82,7 +82,7 @@ class GenerateRequest(BaseModel):
 
 class PDFProcessRequest(BaseModel):
     pdf_id: str
-    bucket_name: Optional[str] = "pdfs"
+    bucket_name: Optional[str] = "uploadFiles"
 
 # ============================================================================
 # RAG COMPONENTS
@@ -93,7 +93,7 @@ class RAGPipeline:
         self.vectorstore: Optional[FAISS] = None
         self.documents: List[Document] = []
     
-    def download_pdf_from_supabase(self, pdf_id: str, bucket_name: str = "pdfs") -> bytes:
+    def download_pdf_from_supabase(self, pdf_id: str, bucket_name: str = "uploadFiles") -> bytes:
         """Download PDF from Supabase storage"""
         try:
             response = supabase.storage.from_(bucket_name).download(pdf_id)

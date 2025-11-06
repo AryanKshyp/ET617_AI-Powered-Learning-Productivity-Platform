@@ -64,5 +64,5 @@ export default function UploadPage() {
 function supabaseUrlFor(path: string) {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
   // Supabase storage public URL pattern
-  return `${base.replace(/\.co\/$/, '.co')}/storage/v1/object/public/pdfs/${encodeURIComponent(path)}`
+  return `${base.replace(/\.co\/$/, '.co')}/storage/v1/object/public/uploadFiles/${encodeURIComponent(path)}`
 }

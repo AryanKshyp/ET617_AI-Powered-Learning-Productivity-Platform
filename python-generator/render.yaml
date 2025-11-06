@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: python-generator
+    env: python
+    region: oregon
+    plan: starter  # Use 'starter' for paid or 'free' for free tier
+    buildCommand: pip install --no-cache-dir -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: COHERE_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11
+

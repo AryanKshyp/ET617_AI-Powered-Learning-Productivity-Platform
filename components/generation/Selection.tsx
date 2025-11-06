@@ -31,7 +31,7 @@ const GenerationMenu = () => {
            as that is the implied starting point for these features based on your request. */}
 
                 <button
-                    onClick={() => router.push('assignment')}
+                    onClick={() => router.push('/dashboard/question-bank')}
                     className="flex items-center justify-center w-full px-8 py-4 bg-gray-800 text-white font-semibold rounded-lg shadow-xl transition duration-300 transform hover:scale-[1.03] hover:bg-gray-700 active:scale-[1.01]"
                 >
                     <ClipboardCheck className="w-6 h-6 mr-3" />
@@ -39,7 +39,7 @@ const GenerationMenu = () => {
                 </button>
 
                 <button
-                    onClick={() => router.push('quiz')}
+                    onClick={() => router.push('/dashboard/question-bank')}
                     className="flex items-center justify-center w-full px-8 py-4 bg-gray-800 text-white font-semibold rounded-lg shadow-xl transition duration-300 transform hover:scale-[1.03] hover:bg-gray-700 active:scale-[1.01]"
                 >
                     <PenTool className="w-6 h-6 mr-3" />
@@ -48,7 +48,7 @@ const GenerationMenu = () => {
 
                 <button
                     // All generation options currently lead to the Question Bank/PYQs upload page for simplicity
-                    onClick={() => router.push('questionPaper')}
+                    onClick={() => router.push('/dashboard/question-bank')}
                     className="flex items-center justify-center w-full px-8 py-4 bg-gray-800 text-white font-semibold rounded-lg shadow-xl transition duration-300 transform hover:scale-[1.03] hover:bg-gray-700 active:scale-[1.01]"
                 >
                     <BookOpen className="w-6 h-6 mr-3" />
