@@ -34,17 +34,24 @@ RUN echo "=== Debugging requirements.txt ===" && \
 # Create clean requirements file (remove Windows-only packages)
 # This handles cases where old requirements.txt might still have pywin32
 RUN echo "=== Creating requirements-clean.txt ===" && \
-    grep -v "^pywin32" requirements.txt | \
-    grep -v "^pyreadline3" | \
+    grep -vE "^(pywin32|pyreadline3)" requirements.txt | \
     grep -v "^#" | \
-    grep -v "^$" > requirements-clean.txt && \
+    grep -v "^[[:space:]]*$" > requirements-clean.txt && \
     echo "File created. Total lines:" && \
     wc -l requirements-clean.txt && \
     echo "Checking for uvicorn in clean file:" && \
-    (grep -i uvicorn requirements-clean.txt && echo "✓ uvicorn found in clean file!") || \
-    (echo "✗ uvicorn NOT found in requirements-clean.txt!" && \
-     echo "This is a critical error!" && \
-     exit 1)
+    if grep -qi "uvicorn" requirements-clean.txt; then \
+        echo "✓ uvicorn found in clean file!"; \
+        grep -i "uvicorn" requirements-clean.txt; \
+    else \
+        echo "✗ uvicorn NOT found in requirements-clean.txt!"; \
+        echo "This is a critical error!"; \
+        echo "First 10 lines of requirements-clean.txt:"; \
+        head -10 requirements-clean.txt; \
+        echo "Last 10 lines of requirements-clean.txt:"; \
+        tail -10 requirements-clean.txt; \
+        exit 1; \
+    fi
 
 # Install Python dependencies
 # Use --no-cache-dir to reduce image size
