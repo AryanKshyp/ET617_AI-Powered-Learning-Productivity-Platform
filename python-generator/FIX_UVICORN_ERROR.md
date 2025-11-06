@@ -9,34 +9,33 @@ The error `/bin/sh: 1: uvicorn: not found` means that `uvicorn` wasn't installed
 
 ## Solution
 
-### Option 1: Update Render Service Settings (Recommended)
+### Option 1: Use render.yaml (Recommended)
 
-If you're using the Render Dashboard (not render.yaml):
+The `render.yaml` file is already configured with the correct build command that:
+- Filters out Windows-only packages (`pywin32`, `pyreadline3`)
+- Installs all dependencies including uvicorn
+- Uses `python app.py` to start the service
+
+Just deploy using the Blueprint method in Render Dashboard, and it will use the `render.yaml` configuration automatically.
+
+### Option 2: Update Render Service Settings (Manual Configuration)
+
+If you're configuring manually in the Render Dashboard:
 
 1. **Go to your Render service** → **Settings** → **Build & Deploy**
 
 2. **Update Build Command** to:
    ```bash
-   pip install --upgrade pip setuptools wheel && grep -v "^pywin32" requirements.txt | grep -v "^pyreadline3" | grep -v "^#" | grep -v "^$" > requirements-clean.txt && pip install --no-cache-dir -r requirements-clean.txt
+   pip install --upgrade pip setuptools wheel && python -c "import sys; lines = [l for l in open('requirements.txt') if not l.strip().startswith('pywin32') and not l.strip().startswith('pyreadline3') and not l.strip().startswith('#') and l.strip()]; open('requirements-clean.txt', 'w').writelines(lines)" && pip install --no-cache-dir -r requirements-clean.txt
    ```
 
 3. **Verify Start Command** is:
    ```bash
-   uvicorn app:app --host 0.0.0.0 --port $PORT
+   python app.py
    ```
 
 4. **Clear build cache and redeploy:**
    - Click "Manual Deploy" → "Clear build cache & deploy"
-
-### Option 2: Use Python Module Syntax
-
-Alternatively, update the **Start Command** to use Python module syntax:
-
-```bash
-python -m uvicorn app:app --host 0.0.0.0 --port $PORT
-```
-
-This ensures Python can find uvicorn even if PATH issues occur.
 
 ### Option 3: Verify Build Logs
 
@@ -54,11 +53,12 @@ If you don't see `uvicorn` in the installed packages list, the build failed.
 
 ## Quick Fix Steps
 
-1. **Update Build Command** (see Option 1 above)
-2. **Clear build cache** in Render dashboard
-3. **Redeploy** the service
-4. **Check build logs** - should see uvicorn installed
-5. **Check deploy logs** - should see service starting successfully
+1. **Use render.yaml** (easiest - already configured)
+2. **OR Update Build Command** (see Option 2 above)
+3. **Clear build cache** in Render dashboard
+4. **Redeploy** the service
+5. **Check build logs** - should see uvicorn installed
+6. **Check deploy logs** - should see service starting successfully
 
 ## Verify Installation
 
@@ -69,15 +69,4 @@ Collecting uvicorn==0.30.6
 Successfully installed uvicorn-0.30.6
 ```
 
-If you see this, the build succeeded. If the deploy still fails with "uvicorn: not found", use the Python module syntax in the start command.
-
-## Alternative: Use Python -m
-
-If the issue persists, change your **Start Command** in Render to:
-
-```bash
-python -m uvicorn app:app --host 0.0.0.0 --port $PORT
-```
-
-This explicitly tells Python to run uvicorn as a module, which is more reliable.
-
+If you see this, the build succeeded. The service should start with `python app.py` which imports and runs uvicorn internally.

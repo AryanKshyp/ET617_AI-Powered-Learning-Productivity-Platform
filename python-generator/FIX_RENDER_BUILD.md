@@ -2,38 +2,36 @@
 
 ## Immediate Fix
 
-The error you're seeing indicates Render is using an **old version** of `requirements.txt` that still contains `pywin32==307`.
+The error you're seeing indicates Render is trying to install `pywin32==307`, which is a Windows-only package and doesn't exist on Linux.
 
-### Step 1: Verify Your Local File is Clean
+### Step 1: Verify Your Local File
 
-Check that your local `python-generator/requirements.txt` doesn't have `pywin32`:
+Check that your local `python-generator/requirements.txt` has `pywin32` (it's fine to keep it for local Windows development):
 ```bash
 grep pywin32 python-generator/requirements.txt
 ```
-This should return nothing. If it shows `pywin32==307`, the file wasn't updated.
 
-### Step 2: Commit and Push Changes
+This should show `pywin32==307`. The build command will filter it out automatically.
 
-```bash
-# Make sure you're in the project root
-cd d:\ET617
+### Step 2: Use render.yaml (Recommended)
 
-# Check what files have changed
-git status
+The `render.yaml` file is already configured to filter out Windows packages during build. Just deploy using Blueprint in Render Dashboard.
 
-# Add the updated files
-git add python-generator/requirements.txt
-git add python-generator/Dockerfile
+### Step 3: Manual Configuration (Alternative)
 
-# Commit
-git commit -m "Remove Windows-only packages (pywin32, pyreadline3) for Render deployment"
+If configuring manually in Render Dashboard:
 
-# Push to GitHub
-git push origin main
-# (or git push origin master, depending on your branch)
-```
+1. **Build Command** should filter out Windows packages:
+   ```bash
+   pip install --upgrade pip setuptools wheel && python -c "import sys; lines = [l for l in open('requirements.txt') if not l.strip().startswith('pywin32') and not l.strip().startswith('pyreadline3') and not l.strip().startswith('#') and l.strip()]; open('requirements-clean.txt', 'w').writelines(lines)" && pip install --no-cache-dir -r requirements-clean.txt
+   ```
 
-### Step 3: Force Render to Use Latest Commit
+2. **Start Command**:
+   ```bash
+   python app.py
+   ```
+
+### Step 4: Force Render to Use Latest Commit
 
 1. **Go to Render Dashboard**
    - Navigate to your service
@@ -45,22 +43,22 @@ git push origin main
    - Make sure "Branch" is set to `main` (or your branch)
    - Click "Save Changes" and then "Manual Deploy"
 
-### Step 4: Verify the Build
+### Step 5: Verify the Build
 
-The Dockerfile now has a safety mechanism that filters out `pywin32` even if it's in requirements.txt, so the build should succeed.
+The build command filters out `pywin32` and `pyreadline3` before pip tries to install them, so the build should succeed.
 
 ## What Was Fixed
 
-1. ✅ **Removed `pywin32==307`** from requirements.txt (Windows-only)
-2. ✅ **Removed `pyreadline3==3.5.4`** from requirements.txt (Windows-only)
-3. ✅ **Updated Dockerfile** to filter out Windows packages as a safety measure
-4. ✅ **Added build resilience** - Dockerfile now creates a clean requirements file
+1. ✅ **Build command filters out `pywin32`** - Windows-only package excluded
+2. ✅ **Build command filters out `pyreadline3`** - Windows-only package excluded
+3. ✅ **Uses Python filtering** - More reliable than shell commands
+4. ✅ **Self-contained app** - `app.py` includes server startup code
 
 ## If Build Still Fails
 
 ### Option 1: Check Render Build Logs
 - Look at the exact line that's failing
-- The Dockerfile now filters out pywin32, so it should work even with old requirements.txt
+- The build command now filters out pywin32, so it should work even if it's in requirements.txt
 
 ### Option 2: Verify GitHub Has Latest Code
 ```bash
@@ -69,17 +67,17 @@ git log --oneline -5
 # Make sure your latest commit is there
 ```
 
-### Option 3: Create a Clean Requirements File
-If you want to be absolutely sure, you can create a `requirements-linux.txt` with only the packages needed for Linux deployment, but the Dockerfile filtering should handle this now.
+### Option 3: Check render.yaml
+Make sure `render.yaml` has the correct build command that filters Windows packages.
 
 ## Expected Build Output
 
 After pushing and clearing cache, you should see:
 ```
-Step 5/6 : RUN pip install --upgrade pip setuptools wheel
-Step 6/6 : RUN grep -v "^pywin32" requirements.txt ...
-Step 7/6 : RUN pip install --no-cache-dir -r requirements-clean.txt
+Collecting packages...
+Filtering requirements...
+Installing packages...
+Successfully installed fastapi-0.115.0 uvicorn-0.30.6 ...
 ```
 
 The build should complete successfully without the `pywin32` error.
-

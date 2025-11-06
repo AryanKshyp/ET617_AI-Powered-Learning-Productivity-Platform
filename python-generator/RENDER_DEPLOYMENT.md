@@ -65,9 +65,7 @@ The `requirements.txt` has been updated to remove:
      ```
    - **Plan**: Choose `Starter` ($7/month) for better performance, or `Free` for testing
    
-   **Note**: If you have a `Dockerfile`, Render will use Docker by default. To use the build/start commands above instead:
-   - Either rename/remove the Dockerfile, OR
-   - Use `render.yaml` configuration file (recommended - see below)
+   **Note**: The build command automatically filters out Windows-only packages (`pywin32`, `pyreadline3`) during installation.
 
 4. **Add Environment Variables**
    Click "Advanced" → "Add Environment Variable" and add:
@@ -116,16 +114,16 @@ If you prefer configuration as code:
      - `torch` → Try `torch --index-url https://download.pytorch.org/whl/cpu` for CPU-only
      - Or use `torch==2.0.0` (older, smaller version)
 
-3. **Install in stages** (modify Dockerfile)
-   ```dockerfile
+3. **Install in stages** (modify build command in render.yaml)
+   ```bash
    # Install core dependencies first
-   RUN pip install fastapi uvicorn supabase google-generativeai cohere
+   pip install fastapi uvicorn supabase google-generativeai cohere
    
    # Then install heavy ML packages
-   RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
    
-   # Then install rest
-   RUN pip install --no-cache-dir -r requirements.txt
+   # Then install rest (filtering Windows packages)
+   python -c "import sys; lines = [l for l in open('requirements.txt') if not l.strip().startswith('pywin32') and not l.strip().startswith('pyreadline3') and not l.strip().startswith('#') and l.strip()]; open('requirements-clean.txt', 'w').writelines(lines)" && pip install --no-cache-dir -r requirements-clean.txt
    ```
 
 4. **Check build logs carefully**

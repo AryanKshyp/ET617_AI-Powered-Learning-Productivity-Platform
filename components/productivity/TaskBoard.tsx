@@ -74,12 +74,20 @@ export default function TaskBoard() {
   }
 
   const createBoard = async () => {
-    if (!newBoardTitle.trim()) return
+    if (!newBoardTitle.trim()) {
+      alert('Please enter a board name')
+      return
+    }
 
-    const { data: userData } = await supabase.auth.getUser()
-    if (!userData.user) return
+    const { data: userData, error: authError } = await supabase.auth.getUser()
+    if (authError || !userData.user) {
+      console.error('Auth error:', authError)
+      alert('You must be logged in to create a board')
+      return
+    }
 
     try {
+      console.log('Creating board with:', { user_id: userData.user.id, title: newBoardTitle })
       const res = await fetch('/api/productivity/task-board', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -87,27 +95,52 @@ export default function TaskBoard() {
       })
 
       const json = await res.json()
+      console.log('Board creation response:', { status: res.status, ok: res.ok, json })
+      
       if (res.ok && json.data) {
         setBoards([json.data, ...boards])
         setSelectedBoard(json.data.id)
         setNewBoardTitle('')
+        // Reload boards to ensure consistency
+        await loadBoards()
       } else {
-        console.error('Failed to create board:', json.error)
-        alert('Failed to create board: ' + (json.error || 'Unknown error'))
+        const errorMsg = json.error || json.message || 'Unknown error'
+        console.error('Failed to create board:', errorMsg, json)
+        alert(`Failed to create board: ${errorMsg}`)
       }
     } catch (error) {
       console.error('Error creating board:', error)
-      alert('Error creating board. Please try again.')
+      alert(`Error creating board: ${error instanceof Error ? error.message : 'Please try again.'}`)
     }
   }
 
   const createTask = async () => {
-    if (!newTaskTitle.trim() || !selectedBoard) return
+    if (!newTaskTitle.trim()) {
+      alert('Please enter a task title')
+      return
+    }
+    
+    if (!selectedBoard) {
+      alert('Please select a board first')
+      return
+    }
 
-    const { data: userData } = await supabase.auth.getUser()
-    if (!userData.user) return
+    const { data: userData, error: authError } = await supabase.auth.getUser()
+    if (authError || !userData.user) {
+      console.error('Auth error:', authError)
+      alert('You must be logged in to create a task')
+      return
+    }
 
     try {
+      console.log('Creating task with:', {
+        user_id: userData.user.id,
+        board_id: selectedBoard,
+        title: newTaskTitle,
+        description: newTaskDesc,
+        priority: newTaskPriority,
+      })
+      
       const res = await fetch('/api/productivity/task', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -121,18 +154,23 @@ export default function TaskBoard() {
       })
 
       const json = await res.json()
+      console.log('Task creation response:', { status: res.status, ok: res.ok, json })
+      
       if (res.ok && json.data) {
         setTasks([json.data, ...tasks])
         setNewTaskTitle('')
         setNewTaskDesc('')
         setNewTaskPriority('medium')
+        // Reload tasks to ensure consistency
+        await loadTasks()
       } else {
-        console.error('Failed to create task:', json.error)
-        alert('Failed to create task: ' + (json.error || 'Unknown error'))
+        const errorMsg = json.error || json.message || 'Unknown error'
+        console.error('Failed to create task:', errorMsg, json)
+        alert(`Failed to create task: ${errorMsg}`)
       }
     } catch (error) {
       console.error('Error creating task:', error)
-      alert('Error creating task. Please try again.')
+      alert(`Error creating task: ${error instanceof Error ? error.message : 'Please try again.'}`)
     }
   }
 
