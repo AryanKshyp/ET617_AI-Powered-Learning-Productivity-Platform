@@ -17,18 +17,34 @@ RUN pip install --upgrade pip setuptools wheel
 # Copy requirements first for better Docker layer caching
 COPY requirements.txt .
 
+# Debug: Check what's in the original requirements.txt
+RUN echo "=== Debugging requirements.txt ===" && \
+    echo "Total lines in requirements.txt:" && \
+    wc -l requirements.txt && \
+    echo "Checking for uvicorn in original file:" && \
+    (grep -i uvicorn requirements.txt && echo "✓ uvicorn found in original!") || \
+    (echo "✗ uvicorn NOT in original requirements.txt!" && \
+     echo "Last 20 lines of requirements.txt:" && \
+     tail -20 requirements.txt && \
+     exit 1) && \
+    echo "Checking for pywin32:" && \
+    (grep -i pywin32 requirements.txt && echo "⚠ pywin32 found (will be filtered)") || \
+    echo "✓ No pywin32 found"
+
 # Create clean requirements file (remove Windows-only packages)
 # This handles cases where old requirements.txt might still have pywin32
-RUN grep -v "^pywin32" requirements.txt | \
+RUN echo "=== Creating requirements-clean.txt ===" && \
+    grep -v "^pywin32" requirements.txt | \
     grep -v "^pyreadline3" | \
     grep -v "^#" | \
-    grep -v "^$" > requirements-clean.txt || true
-
-# Verify requirements-clean.txt was created and contains uvicorn
-RUN echo "Checking requirements-clean.txt:" && \
-    cat requirements-clean.txt | head -20 && \
-    echo "..." && \
-    grep -i uvicorn requirements-clean.txt || (echo "ERROR: uvicorn not found in requirements!" && exit 1)
+    grep -v "^$" > requirements-clean.txt && \
+    echo "File created. Total lines:" && \
+    wc -l requirements-clean.txt && \
+    echo "Checking for uvicorn in clean file:" && \
+    (grep -i uvicorn requirements-clean.txt && echo "✓ uvicorn found in clean file!") || \
+    (echo "✗ uvicorn NOT found in requirements-clean.txt!" && \
+     echo "This is a critical error!" && \
+     exit 1)
 
 # Install Python dependencies
 # Use --no-cache-dir to reduce image size
