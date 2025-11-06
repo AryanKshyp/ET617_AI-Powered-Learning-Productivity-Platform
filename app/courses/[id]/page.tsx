@@ -163,6 +163,12 @@ export default function CoursePage() {
                         </div>
                       </div>
                       <div className="flex gap-2">
+                        <button
+                          onClick={() => router.push(`/materials/${material.id}`)}
+                          className="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700"
+                        >
+                          View
+                        </button>
                         {(material.material_type === 'pdf' || material.material_type === 'note') && (
                           <button
                             onClick={() => handleGenerate(material)}
