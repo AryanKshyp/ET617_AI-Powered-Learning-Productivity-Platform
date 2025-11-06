@@ -79,17 +79,25 @@ export default function TaskBoard() {
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user) return
 
-    const res = await fetch('/api/productivity/task-board', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userData.user.id, title: newBoardTitle }),
-    })
+    try {
+      const res = await fetch('/api/productivity/task-board', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userData.user.id, title: newBoardTitle }),
+      })
 
-    const json = await res.json()
-    if (json.data) {
-      setBoards([json.data, ...boards])
-      setSelectedBoard(json.data.id)
-      setNewBoardTitle('')
+      const json = await res.json()
+      if (res.ok && json.data) {
+        setBoards([json.data, ...boards])
+        setSelectedBoard(json.data.id)
+        setNewBoardTitle('')
+      } else {
+        console.error('Failed to create board:', json.error)
+        alert('Failed to create board: ' + (json.error || 'Unknown error'))
+      }
+    } catch (error) {
+      console.error('Error creating board:', error)
+      alert('Error creating board. Please try again.')
     }
   }
 
@@ -99,65 +107,94 @@ export default function TaskBoard() {
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user) return
 
-    const res = await fetch('/api/productivity/task', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: userData.user.id,
-        board_id: selectedBoard,
-        title: newTaskTitle,
-        description: newTaskDesc || null,
-        priority: newTaskPriority,
-      }),
-    })
+    try {
+      const res = await fetch('/api/productivity/task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userData.user.id,
+          board_id: selectedBoard,
+          title: newTaskTitle,
+          description: newTaskDesc || null,
+          priority: newTaskPriority,
+        }),
+      })
 
-    const json = await res.json()
-    if (json.data) {
-      setTasks([json.data, ...tasks])
-      setNewTaskTitle('')
-      setNewTaskDesc('')
+      const json = await res.json()
+      if (res.ok && json.data) {
+        setTasks([json.data, ...tasks])
+        setNewTaskTitle('')
+        setNewTaskDesc('')
+        setNewTaskPriority('medium')
+      } else {
+        console.error('Failed to create task:', json.error)
+        alert('Failed to create task: ' + (json.error || 'Unknown error'))
+      }
+    } catch (error) {
+      console.error('Error creating task:', error)
+      alert('Error creating task. Please try again.')
     }
   }
 
   const updateTaskStatus = async (taskId: string, newStatus: TaskStatus) => {
-    const res = await fetch('/api/productivity/task', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: taskId, status: newStatus }),
-    })
+    try {
+      const res = await fetch('/api/productivity/task', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: taskId, status: newStatus }),
+      })
 
-    const json = await res.json()
-    if (json.data) {
-      setTasks(tasks.map((t) => (t.id === taskId ? json.data : t)))
+      const json = await res.json()
+      if (res.ok && json.data) {
+        setTasks(tasks.map((t) => (t.id === taskId ? json.data : t)))
 
-      // Award XP for completing task
-      if (newStatus === 'completed') {
-        const { data: userData } = await supabase.auth.getUser()
-        if (userData.user) {
-          await fetch('/api/productivity/xp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              user_id: userData.user.id,
-              amount: 25,
-              source: 'task',
-              source_id: taskId,
-            }),
-          })
+        // Award XP for completing task
+        if (newStatus === 'completed') {
+          const { data: userData } = await supabase.auth.getUser()
+          if (userData.user) {
+            await fetch('/api/productivity/xp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_id: userData.user.id,
+                amount: 25,
+                source: 'task',
+                source_id: taskId,
+              }),
+            })
+          }
         }
+      } else {
+        console.error('Failed to update task:', json.error)
       }
+    } catch (error) {
+      console.error('Error updating task:', error)
     }
   }
 
-  const deleteTask = async (taskId: string) => {
-    const res = await fetch('/api/productivity/task', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: taskId }),
-    })
+  const toggleTaskCompletion = async (task: Task) => {
+    const newStatus: TaskStatus = task.status === 'completed' ? 'todo' : 'completed'
+    await updateTaskStatus(task.id, newStatus)
+  }
 
-    if (res.ok) {
-      setTasks(tasks.filter((t) => t.id !== taskId))
+  const deleteTask = async (taskId: string) => {
+    try {
+      const res = await fetch('/api/productivity/task', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: taskId }),
+      })
+
+      if (res.ok) {
+        setTasks(tasks.filter((t) => t.id !== taskId))
+      } else {
+        const json = await res.json()
+        console.error('Failed to delete task:', json.error)
+        alert('Failed to delete task: ' + (json.error || 'Unknown error'))
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error)
+      alert('Error deleting task. Please try again.')
     }
   }
 
@@ -222,6 +259,12 @@ export default function TaskBoard() {
                 type="text"
                 value={newTaskTitle}
                 onChange={(e) => setNewTaskTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    createTask()
+                  }
+                }}
                 placeholder="Task title..."
                 className="w-full px-4 py-2 border rounded-lg"
               />
@@ -266,23 +309,33 @@ export default function TaskBoard() {
                       task.priority
                     )} shadow-sm`}
                   >
-                    <h4 className="font-semibold mb-1">{task.title}</h4>
-                    {task.description && (
-                      <p className="text-sm text-gray-600 mb-2">{task.description}</p>
-                    )}
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        onClick={() => updateTaskStatus(task.id, 'in_progress')}
-                        className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded"
-                      >
-                        Start
-                      </button>
-                      <button
-                        onClick={() => deleteTask(task.id)}
-                        className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded"
-                      >
-                        Delete
-                      </button>
+                    <div className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={false}
+                        onChange={() => toggleTaskCompletion(task)}
+                        className="mt-1 w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                      />
+                      <div className="flex-1">
+                        <h4 className="font-semibold mb-1">{task.title}</h4>
+                        {task.description && (
+                          <p className="text-sm text-gray-600 mb-2">{task.description}</p>
+                        )}
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => updateTaskStatus(task.id, 'in_progress')}
+                            className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded"
+                          >
+                            Start
+                          </button>
+                          <button
+                            onClick={() => deleteTask(task.id)}
+                            className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -300,23 +353,33 @@ export default function TaskBoard() {
                       task.priority
                     )} shadow-sm`}
                   >
-                    <h4 className="font-semibold mb-1">{task.title}</h4>
-                    {task.description && (
-                      <p className="text-sm text-gray-600 mb-2">{task.description}</p>
-                    )}
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        onClick={() => updateTaskStatus(task.id, 'completed')}
-                        className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded"
-                      >
-                        Complete
-                      </button>
-                      <button
-                        onClick={() => updateTaskStatus(task.id, 'todo')}
-                        className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded"
-                      >
-                        Back to Todo
-                      </button>
+                    <div className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={false}
+                        onChange={() => toggleTaskCompletion(task)}
+                        className="mt-1 w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                      />
+                      <div className="flex-1">
+                        <h4 className="font-semibold mb-1">{task.title}</h4>
+                        {task.description && (
+                          <p className="text-sm text-gray-600 mb-2">{task.description}</p>
+                        )}
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => updateTaskStatus(task.id, 'completed')}
+                            className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded"
+                          >
+                            Complete
+                          </button>
+                          <button
+                            onClick={() => updateTaskStatus(task.id, 'todo')}
+                            className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded"
+                          >
+                            Back to Todo
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -334,16 +397,26 @@ export default function TaskBoard() {
                       task.priority
                     )} shadow-sm opacity-75`}
                   >
-                    <h4 className="font-semibold mb-1 line-through">{task.title}</h4>
-                    {task.description && (
-                      <p className="text-sm text-gray-600 mb-2">{task.description}</p>
-                    )}
-                    <button
-                      onClick={() => deleteTask(task.id)}
-                      className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded mt-2"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={true}
+                        onChange={() => toggleTaskCompletion(task)}
+                        className="mt-1 w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                      />
+                      <div className="flex-1">
+                        <h4 className="font-semibold mb-1 line-through">{task.title}</h4>
+                        {task.description && (
+                          <p className="text-sm text-gray-600 mb-2">{task.description}</p>
+                        )}
+                        <button
+                          onClick={() => deleteTask(task.id)}
+                          className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded mt-2"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
