@@ -20,7 +20,26 @@ The `requirements.txt` has been updated to remove:
 - `pywin32` - Windows-only package that causes build failures on Linux
 - `pyreadline3` - Windows-specific readline implementation
 
-### 2. Deploy via Render Dashboard
+### 2. Deploy via render.yaml (Recommended - No Docker Required)
+
+**Easiest method**: Use the `render.yaml` file in the `python-generator` directory. Render will automatically detect and use it.
+
+1. **Ensure `render.yaml` exists** in `python-generator/` directory (already configured)
+2. **Push to GitHub** - Render will detect the `render.yaml` file
+3. **In Render Dashboard**:
+   - Click "New +" → "Blueprint"
+   - Connect your GitHub repository
+   - Render will automatically configure everything from `render.yaml`
+4. **Add Environment Variables** in Render dashboard (see step 4 below)
+5. **Deploy** - Render will use the build/start commands from `render.yaml`
+
+**Benefits**:
+- ✅ No Docker required
+- ✅ Configuration is version-controlled
+- ✅ Easy to update and maintain
+- ✅ Works with `python app.py` (self-contained)
+
+### 3. Deploy via Render Dashboard (Manual Configuration)
 
 1. **Go to Render Dashboard**
    - Visit [dashboard.render.com](https://dashboard.render.com)
@@ -38,13 +57,17 @@ The `requirements.txt` has been updated to remove:
    - **Environment**: `Python 3`
    - **Build Command**: 
      ```
-     pip install --upgrade pip setuptools wheel && pip install --no-cache-dir -r requirements.txt
+     pip install --upgrade pip setuptools wheel && grep -vE "^(pywin32|pyreadline3)" requirements.txt | grep -v "^#" | grep -v "^[[:space:]]*$" > requirements-clean.txt && pip install --no-cache-dir -r requirements-clean.txt && rm requirements-clean.txt
      ```
    - **Start Command**: 
      ```
-     uvicorn app:app --host 0.0.0.0 --port $PORT
+     python app.py
      ```
    - **Plan**: Choose `Starter` ($7/month) for better performance, or `Free` for testing
+   
+   **Note**: If you have a `Dockerfile`, Render will use Docker by default. To use the build/start commands above instead:
+   - Either rename/remove the Dockerfile, OR
+   - Use `render.yaml` configuration file (recommended - see below)
 
 4. **Add Environment Variables**
    Click "Advanced" → "Add Environment Variable" and add:

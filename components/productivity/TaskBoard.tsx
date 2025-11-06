@@ -312,7 +312,7 @@ export default function TaskBoard() {
                     <div className="flex items-start gap-2">
                       <input
                         type="checkbox"
-                        checked={false}
+                        checked={task.status === 'completed'}
                         onChange={() => toggleTaskCompletion(task)}
                         className="mt-1 w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                       />
@@ -356,7 +356,7 @@ export default function TaskBoard() {
                     <div className="flex items-start gap-2">
                       <input
                         type="checkbox"
-                        checked={false}
+                        checked={task.status === 'completed'}
                         onChange={() => toggleTaskCompletion(task)}
                         className="mt-1 w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                       />
@@ -400,7 +400,7 @@ export default function TaskBoard() {
                     <div className="flex items-start gap-2">
                       <input
                         type="checkbox"
-                        checked={true}
+                        checked={task.status === 'completed'}
                         onChange={() => toggleTaskCompletion(task)}
                         className="mt-1 w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                       />

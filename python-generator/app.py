@@ -57,7 +57,7 @@ text_splitter = RecursiveCharacterTextSplitter(
 # Document converter
 doc_converter = DocumentConverter()
 
-app = FastAPI(title="Learnify Python Generator", version="1.0.0")
+app = FastAPI(title="ProLearnAI Python Generator", version="1.0.0")
 
 # Add CORS middleware to allow requests from Next.js frontend
 app.add_middleware(
@@ -602,10 +602,32 @@ def load_vectorstore(path: str = "vectorstore"):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================================================
+# Run the application
+# ============================================================================
+
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    
+    # Get port from environment variable (Render uses $PORT, default to 8000)
+    port = int(os.getenv("PORT", 8000))
+    host = os.getenv("HOST", "0.0.0.0")
+    
+    # Run the server
+    uvicorn.run(
+        "app:app",
+        host=host,
+        port=port,
+        reload=False  # Set to True for local development
+    )
+
+# ============================================================================
 # Run locally:
 #   pip install fastapi uvicorn supabase google-generativeai cohere docling
 #   pip install langchain langchain-google-genai langchain-community faiss-cpu
 #   pip install sentence-transformers
 #
+#   python app.py
+#   OR
 #   uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 # ============================================================================

@@ -4,8 +4,8 @@ services:
     env: python
     region: oregon
     plan: starter  # Use 'starter' for paid or 'free' for free tier
-    buildCommand: pip install --upgrade pip setuptools wheel && grep -v "^pywin32" requirements.txt | grep -v "^pyreadline3" | grep -v "^#" | grep -v "^$" > requirements-clean.txt && pip install --no-cache-dir -r requirements-clean.txt
-    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install --upgrade pip setuptools wheel && grep -vE "^(pywin32|pyreadline3)" requirements.txt | grep -v "^#" | grep -v "^[[:space:]]*$" > requirements-clean.txt && pip install --no-cache-dir -r requirements-clean.txt && rm requirements-clean.txt
+    startCommand: python app.py
     healthCheckPath: /
     envVars:
       - key: SUPABASE_URL
