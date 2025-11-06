@@ -4,7 +4,7 @@ services:
     env: python
     region: oregon
     plan: starter  # Use 'starter' for paid or 'free' for free tier
-    buildCommand: pip install --upgrade pip setuptools wheel && python -c "import sys; lines = [l for l in open('requirements.txt') if not l.strip().startswith('pywin32') and not l.strip().startswith('pyreadline3') and not l.strip().startswith('#') and l.strip()]; open('requirements-clean.txt', 'w').writelines(lines)" && pip install --no-cache-dir -r requirements-clean.txt
+    buildCommand: pip install --upgrade pip setuptools wheel && grep -v "^pywin32" requirements.txt | grep -v "^pyreadline3" | grep -v "^#" | grep -v "^$" > requirements-clean.txt && pip install --no-cache-dir -r requirements-clean.txt
     startCommand: python app.py
     healthCheckPath: /
     envVars:
