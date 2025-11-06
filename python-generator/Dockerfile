@@ -26,9 +26,8 @@ RUN grep -v "^pywin32" requirements.txt | \
 
 # Install Python dependencies
 # Use --no-cache-dir to reduce image size
-RUN pip install --no-cache-dir -r requirements-clean.txt || \
-    (echo "First attempt failed, retrying with verbose output..." && \
-     pip install --no-cache-dir -v -r requirements-clean.txt)
+# Fail the build if installation fails (remove || true to catch errors)
+RUN pip install --no-cache-dir -r requirements-clean.txt
 
 # Copy application code
 COPY . .
@@ -41,6 +40,8 @@ EXPOSE 8000
 #     CMD curl -f http://localhost:${PORT:-8000}/ || exit 1
 
 # Run the application
-# Use $PORT environment variable for Render compatibility
-CMD uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}
+# Use python -m uvicorn for better reliability
+# Render sets PORT as environment variable, read it at runtime
+# Shell form allows env var substitution
+CMD python -m uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}
 
