@@ -48,13 +48,20 @@ RUN echo "=== Creating requirements-clean.txt ===" && \
 
 # Install Python dependencies
 # Use --no-cache-dir to reduce image size
-# Exit on any error to catch installation failures
-RUN pip install --no-cache-dir -r requirements-clean.txt || \
+# Install core dependencies first (fastapi, uvicorn) to ensure they're available
+RUN echo "Installing core dependencies first..." && \
+    pip install --no-cache-dir fastapi uvicorn[standard] && \
+    echo "Core dependencies installed. Installing remaining packages..." && \
+    pip install --no-cache-dir -r requirements-clean.txt || \
     (echo "ERROR: pip install failed! Check logs above." && exit 1)
 
-# Verify uvicorn was installed
-RUN python -c "import uvicorn; print(f'uvicorn version: {uvicorn.__version__}')" || \
-    (echo "ERROR: uvicorn installation verification failed!" && exit 1)
+# Verify uvicorn was installed (critical check)
+RUN python -c "import uvicorn; print(f'✓ uvicorn version: {uvicorn.__version__} installed successfully')" || \
+    (echo "✗ ERROR: uvicorn installation verification failed!" && \
+     echo "Attempting to install uvicorn directly..." && \
+     pip install --no-cache-dir uvicorn[standard] && \
+     python -c "import uvicorn; print(f'✓ uvicorn installed via fallback')") || \
+    (echo "✗ CRITICAL: Cannot install uvicorn! Build will fail." && exit 1)
 
 # Copy application code
 COPY . .
