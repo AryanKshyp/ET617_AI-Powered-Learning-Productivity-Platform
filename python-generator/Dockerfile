@@ -24,10 +24,21 @@ RUN grep -v "^pywin32" requirements.txt | \
     grep -v "^#" | \
     grep -v "^$" > requirements-clean.txt || true
 
+# Verify requirements-clean.txt was created and contains uvicorn
+RUN echo "Checking requirements-clean.txt:" && \
+    cat requirements-clean.txt | head -20 && \
+    echo "..." && \
+    grep -i uvicorn requirements-clean.txt || (echo "ERROR: uvicorn not found in requirements!" && exit 1)
+
 # Install Python dependencies
 # Use --no-cache-dir to reduce image size
-# Fail the build if installation fails (remove || true to catch errors)
-RUN pip install --no-cache-dir -r requirements-clean.txt
+# Exit on any error to catch installation failures
+RUN pip install --no-cache-dir -r requirements-clean.txt || \
+    (echo "ERROR: pip install failed! Check logs above." && exit 1)
+
+# Verify uvicorn was installed
+RUN python -c "import uvicorn; print(f'uvicorn version: {uvicorn.__version__}')" || \
+    (echo "ERROR: uvicorn installation verification failed!" && exit 1)
 
 # Copy application code
 COPY . .
