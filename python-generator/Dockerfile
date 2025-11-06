@@ -31,35 +31,17 @@ RUN echo "=== Debugging requirements.txt ===" && \
     (grep -i pywin32 requirements.txt && echo "⚠ pywin32 found (will be filtered)") || \
     echo "✓ No pywin32 found"
 
-# Create clean requirements file (remove Windows-only packages)
-# This handles cases where old requirements.txt might still have pywin32
-RUN echo "=== Creating requirements-clean.txt ===" && \
-    grep -vE "^(pywin32|pyreadline3)" requirements.txt | \
-    grep -v "^#" | \
-    grep -v "^[[:space:]]*$" > requirements-clean.txt && \
-    echo "File created. Total lines:" && \
-    wc -l requirements-clean.txt && \
-    echo "Checking for uvicorn in clean file:" && \
-    if grep -qi "uvicorn" requirements-clean.txt; then \
-        echo "✓ uvicorn found in clean file!"; \
-        grep -i "uvicorn" requirements-clean.txt; \
-    else \
-        echo "✗ uvicorn NOT found in requirements-clean.txt!"; \
-        echo "This is a critical error!"; \
-        echo "First 10 lines of requirements-clean.txt:"; \
-        head -10 requirements-clean.txt; \
-        echo "Last 10 lines of requirements-clean.txt:"; \
-        tail -10 requirements-clean.txt; \
-        exit 1; \
-    fi
-
 # Install Python dependencies
 # Use --no-cache-dir to reduce image size
+# Filter out Windows-only packages (pywin32, pyreadline3) inline during installation
 # Install core dependencies first (fastapi, uvicorn) to ensure they're available
 RUN echo "Installing core dependencies first..." && \
     pip install --no-cache-dir fastapi uvicorn[standard] && \
     echo "Core dependencies installed. Installing remaining packages..." && \
-    pip install --no-cache-dir -r requirements-clean.txt || \
+    grep -vE "^(pywin32|pyreadline3)" requirements.txt | \
+    grep -v "^#" | \
+    grep -v "^[[:space:]]*$" | \
+    pip install --no-cache-dir -r /dev/stdin || \
     (echo "ERROR: pip install failed! Check logs above." && exit 1)
 
 # Verify uvicorn was installed (critical check)
