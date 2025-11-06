@@ -2,7 +2,7 @@
 
 This application requires two storage buckets in Supabase Storage:
 
-1. **`pdfs`** - Used for general PDF uploads (via `/api/upload`)
+1. **`uploadFiles`** - Used for general PDF uploads (via `/api/upload`)
 2. **`materials`** - Used for course materials (via `/api/materials`)
 
 ## How to Create Storage Buckets in Supabase
@@ -11,9 +11,9 @@ This application requires two storage buckets in Supabase Storage:
 1. Go to your Supabase project at https://supabase.com
 2. Navigate to **Storage** in the left sidebar
 
-### Step 2: Create the `pdfs` Bucket
+### Step 2: Create the `uploadFiles` Bucket
 1. Click **"New bucket"** button
-2. Set the bucket name to: `pdfs`
+2. Set the bucket name to: `uploadFiles` (exact name, case-sensitive)
 3. Choose visibility:
    - **Public bucket**: Recommended for development (files accessible via public URL)
    - **Private bucket**: More secure, requires RLS policies for access
@@ -29,25 +29,25 @@ This application requires two storage buckets in Supabase Storage:
 
 If you created **private buckets**, you'll need to set up Row Level Security (RLS) policies:
 
-#### For the `pdfs` bucket:
+#### For the `uploadFiles` bucket:
 ```sql
 -- Allow authenticated users to upload files
 CREATE POLICY "Users can upload own files"
 ON storage.objects FOR INSERT
 TO authenticated
-WITH CHECK (bucket_id = 'pdfs' AND (storage.foldername(name))[1] = auth.uid()::text);
+WITH CHECK (bucket_id = 'uploadFiles' AND (storage.foldername(name))[1] = auth.uid()::text);
 
 -- Allow users to read their own files
 CREATE POLICY "Users can read own files"
 ON storage.objects FOR SELECT
 TO authenticated
-USING (bucket_id = 'pdfs' AND (storage.foldername(name))[1] = auth.uid()::text);
+USING (bucket_id = 'uploadFiles' AND (storage.foldername(name))[1] = auth.uid()::text);
 
 -- Allow users to delete their own files
 CREATE POLICY "Users can delete own files"
 ON storage.objects FOR DELETE
 TO authenticated
-USING (bucket_id = 'pdfs' AND (storage.foldername(name))[1] = auth.uid()::text);
+USING (bucket_id = 'uploadFiles' AND (storage.foldername(name))[1] = auth.uid()::text);
 ```
 
 #### For the `materials` bucket:
@@ -74,7 +74,7 @@ USING (bucket_id = 'materials');
 ## Troubleshooting
 
 ### Error: "Bucket not found"
-- Make sure you've created both buckets with the exact names: `pdfs` and `materials`
+- Make sure you've created both buckets with the exact names: `uploadFiles` and `materials`
 - Check that the bucket names match exactly (case-sensitive)
 
 ### Error: "Permission denied"

@@ -1,19 +1,10 @@
 "use client";
-import React, { useState, useRef } from 'react'; // Added useRef
+import React, { useEffect, useState, useRef } from 'react'; // Added useRef
 import { Upload} from 'lucide-react'; // Using Lucide for icons
 import { useRouter } from "next/navigation";
 
-// Mock Data representing the uploaded papers
-const MOCK_PAPERS = [
-  { id: 1, title: 'PYQ 2024 (1)', year: 2024, count: 1 },
-  { id: 2, title: 'PYQ 2024 (2)', year: 2024, count: 2 },
-  { id: 3, title: 'PYQ 2023 (1)', year: 2023, count: 1 },
-  { id: 4, title: 'PYQ 2023 (2)', year: 2023, count: 2 },
-  { id: 5, title: 'PYQ 2022 (1)', year: 2022, count: 1 },
-  { id: 6, title: 'PYQ 2022 (2)', year: 2022, count: 2 },
-  { id: 7, title: 'PYQ 2021 (1)', year: 2021, count: 1 },
-  { id: 8, title: 'Question Bank', year: null, count: null },
-];
+// Paper type
+type Paper = { id: number; title: string; year: number | null; count: number | null };
 
 /**
  * Reusable component for displaying a single paper/question bank card.
@@ -61,6 +52,9 @@ const PaperCard = ({ paper }) => {
  */
 const PYQ = () => {
   const [isUploading, setIsUploading] = useState(false);
+  const [papers, setPapers] = useState<Paper[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const themeColor = 'bg-purple-800'; // Dark purple for the header accent
 
   // Create refs for the hidden file inputs
@@ -80,20 +74,57 @@ const PYQ = () => {
 
     if (file) {
       setIsUploading(true);
-      console.log(`Starting simulated upload for ${type} file: ${file.name}`);
-      
-      // Simulate API call delay (1.5 seconds)
-      setTimeout(() => {
-        setIsUploading(false);
-        
-        // Requested console output
-        console.log(`PDF got`);
-
-        // Clear the file input value so the same file can be uploaded again
-        event.target.value = null;
-      }, 1500);
+      const form = new FormData();
+      form.set('title', file.name);
+      form.set('file', file);
+      fetch('/api/question-bank', { method: 'POST', body: form })
+        .then(res => res.json())
+        .then(json => {
+          if (json?.data) {
+            setPapers((prev) => [json.data, ...prev]);
+          } else {
+            // Extract error message safely
+            let errorMsg = 'Upload failed';
+            if (json?.error) {
+              if (typeof json.error === 'string') {
+                errorMsg = json.error;
+              } else if (json.error?.message) {
+                errorMsg = String(json.error.message);
+              } else {
+                try {
+                  errorMsg = JSON.stringify(json.error);
+                } catch {
+                  errorMsg = 'Upload failed';
+                }
+              }
+            }
+            setError(errorMsg);
+          }
+        })
+        .catch((err) => {
+          console.error('Upload error:', err);
+          const errorMsg = err?.message || (typeof err === 'string' ? err : 'Upload failed');
+          setError(errorMsg);
+        })
+        .finally(() => {
+          setIsUploading(false);
+          console.log('PDF got');
+          event.target.value = null;
+        });
     }
   };
+
+  // Load papers from API
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetch('/api/question-bank')
+      .then(res => res.json())
+      .then(json => { if (!cancelled) setPapers(json?.data || []); })
+      .catch(() => { if (!cancelled) setError('Failed to load papers'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const router = useRouter();
  
@@ -157,11 +188,17 @@ const PYQ = () => {
         </h2>
 
         {/* Papers Grid Section */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4 md:gap-6">
-          {MOCK_PAPERS.map((paper) => (
-            <PaperCard key={paper.id} paper={paper} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="text-center text-gray-600">Loading...</div>
+        ) : error ? (
+          <div className="text-center text-rose-600">{error}</div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4 md:gap-6">
+            {papers.map((paper) => (
+              <PaperCard key={paper.id} paper={paper} />
+            ))}
+          </div>
+        )}
 
         {/* Footer/Navigation Button */}
         <div className="mt-12 w-full flex justify-center">

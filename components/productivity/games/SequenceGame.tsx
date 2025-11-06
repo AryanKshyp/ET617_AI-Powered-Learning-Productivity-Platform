@@ -105,7 +105,6 @@ export default function SequenceGame() {
       }
 
       loadBestScore()
-    }
   }
 
   const resetGame = () => {

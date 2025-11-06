@@ -150,4 +150,3 @@ create index if not exists idx_game_scores_game_type on public.game_scores(game_
 create index if not exists idx_game_scores_score on public.game_scores(score);
 create index if not exists idx_learning_sessions_user_id on public.learning_sessions(user_id);
 create index if not exists idx_learning_sessions_session_date on public.learning_sessions(session_date);
-

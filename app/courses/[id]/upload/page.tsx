@@ -26,16 +26,57 @@ export default function CourseUploadPage() {
         body: form 
       });
       
-      const json = await res.json();
+      let json;
+      try {
+        const text = await res.text();
+        json = text ? JSON.parse(text) : {};
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        throw new Error(`Server returned invalid response: ${res.status} ${res.statusText}`);
+      }
       
       if (json.data) {
         router.push(`/courses/${params.id}`);
       } else {
-        alert('Upload failed: ' + (json.error || 'Unknown error'));
+        // Helper to safely extract error message
+        const extractError = (resp: any): string => {
+          if (!resp) return 'Upload failed: Server returned an error';
+          if (resp.error !== undefined) {
+            const err = resp.error;
+            if (typeof err === 'string' && err) return err;
+            if (err && typeof err === 'object') {
+              if (err.message && typeof err.message === 'string') return err.message;
+              if (err.error && typeof err.error === 'string') return err.error;
+              try {
+                const str = JSON.stringify(err);
+                if (str && str !== '{}' && str !== 'null') return str;
+              } catch {}
+            }
+          }
+          if (resp.message && typeof resp.message === 'string') return resp.message;
+          return `Upload failed: Server error (${res.status})`;
+        };
+        
+        const errorMsg = extractError(json);
+        console.error('Upload API error:', json);
+        alert('Upload failed: ' + errorMsg);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
-      alert('Upload failed');
+      // Safely extract error message
+      const extractError = (err: any): string => {
+        if (!err) return 'Upload failed: Unknown error';
+        if (typeof err === 'string') return err;
+        if (err instanceof Error && err.message) return err.message;
+        if (err?.message && typeof err.message === 'string') return err.message;
+        try {
+          const str = JSON.stringify(err);
+          if (str && str !== '{}' && str !== '[object Object]') return str;
+        } catch {}
+        return 'Upload failed: An unexpected error occurred';
+      };
+      const errorMsg = extractError(error);
+      alert('Upload failed: ' + errorMsg);
     } finally {
       setLoading(false);
     }

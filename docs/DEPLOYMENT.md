@@ -52,38 +52,7 @@ Your application consists of two parts:
 
 Vercel doesn't support Python backend services. You need to deploy the Python service separately. Here are the best options:
 
-### Option A: Railway (Recommended - Easiest)
-
-1. **Sign up** at [railway.app](https://railway.app) (free tier available)
-
-2. **Create New Project**
-   - Click "New Project"
-   - Select "Deploy from GitHub repo" (recommended) or "Empty Project"
-
-3. **Configure the Service**
-   - If using GitHub: Connect your repo, select `python-generator` folder
-   - If empty project: Add the `python-generator` folder files
-
-4. **Set Environment Variables**
-   In Railway dashboard, add these variables:
-   ```
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_KEY=your_supabase_service_role_key
-   GEMINI_API_KEY=your_gemini_api_key
-   COHERE_API_KEY=your_cohere_api_key
-   ```
-
-5. **Configure Build Settings**
-   - Set root directory: `python-generator`
-   - Build command: `pip install -r requirements.txt`
-   - Start command: `uvicorn app:app --host 0.0.0.0 --port $PORT`
-
-6. **Deploy**
-   - Railway will auto-deploy
-   - Get your service URL from the dashboard (e.g., `https://your-service.railway.app`)
-   - Use this URL as `PYTHON_GENERATOR_URL` in Vercel
-
-### Option B: Render
+### Render
 
 1. **Sign up** at [render.com](https://render.com)
 
@@ -97,72 +66,9 @@ Vercel doesn't support Python backend services. You need to deploy the Python se
      - **Start Command**: `uvicorn app:app --host 0.0.0.0 --port $PORT`
 
 3. **Add Environment Variables**
-   Same as Railway (see above)
 
 4. **Deploy**
    - Service will be available at `https://your-service.onrender.com`
-
-### Option C: Fly.io
-
-1. **Install Fly CLI**
-   ```bash
-   # Windows PowerShell
-   powershell -Command "iwr https://fly.io/install.ps1 -useb | iex"
-   ```
-
-2. **Login and Setup**
-   ```bash
-   fly auth login
-   cd python-generator
-   fly launch
-   ```
-
-3. **Configure `fly.toml`**
-   ```toml
-   [build]
-     builder = "paketobuildpacks/builder:base"
-
-   [env]
-     PORT = "8000"
-
-   [[services]]
-     internal_port = 8000
-     protocol = "tcp"
-   ```
-
-4. **Set Secrets**
-   ```bash
-   fly secrets set SUPABASE_URL=your_url
-   fly secrets set SUPABASE_KEY=your_key
-   fly secrets set GEMINI_API_KEY=your_key
-   fly secrets set COHERE_API_KEY=your_key
-   ```
-
-5. **Deploy**
-   ```bash
-   fly deploy
-   ```
-
-### Option D: Google Cloud Run
-
-1. **Install gcloud CLI** and authenticate
-2. **Create Dockerfile** in `python-generator/`:
-   ```dockerfile
-   FROM python:3.11-slim
-   WORKDIR /app
-   COPY requirements.txt .
-   RUN pip install --no-cache-dir -r requirements.txt
-   COPY . .
-   CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]
-   ```
-
-3. **Deploy**
-   ```bash
-   gcloud run deploy learnify-generator \
-     --source python-generator \
-     --region us-central1 \
-     --allow-unauthenticated
-   ```
 
 ## Part 3: Configure Supabase Dashboard
 
