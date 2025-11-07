@@ -43,23 +43,67 @@ export default function GeneratedContentPage() {
     }
   };
 
+  // Helper function to safely check if a value is an array
+  const isArray = (value: any): value is any[] => {
+    return Array.isArray(value);
+  };
+
+  // Helper function to detect the content type based on payload structure
+  const detectContentType = (payload: any): 'quiz' | 'assignment' | 'summary' | 'unknown' => {
+    if (!payload || typeof payload !== 'object') {
+      return 'unknown';
+    }
+
+    // Check for Quiz: has questions array
+    if (isArray(payload.questions) && payload.questions.length > 0) {
+      return 'quiz';
+    }
+
+    // Check for Assignment: has assignment_tasks array
+    if (isArray(payload.assignment_tasks) && payload.assignment_tasks.length > 0) {
+      return 'assignment';
+    }
+
+    // Check for Summary: has key_points array or content field
+    if (isArray(payload.key_points) || payload.content || typeof payload === 'string') {
+      return 'summary';
+    }
+
+    return 'unknown';
+  };
+
   const renderContent = () => {
     if (!generatedItem) return null;
 
     const { generated_type, payload } = generatedItem;
 
-    switch (generated_type) {
-      case 'quiz':
+    // Detect content type from payload structure (more reliable than generated_type)
+    const detectedType = detectContentType(payload);
+    const contentType = detectedType !== 'unknown' ? detectedType : generated_type;
+
+    // Render Quiz content
+    if (contentType === 'quiz' || (isArray(payload?.questions) && payload.questions.length > 0)) {
+      const questions = isArray(payload?.questions) ? payload.questions : [];
+      
+      if (questions.length === 0) {
         return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Quiz</h2>
-            {payload.questions?.map((question: any, index: number) => (
-              <div key={index} className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-3">
-                  Question {index + 1}: {question.question}
-                </h3>
-                <div className="space-y-2">
-                  {question.choices?.map((choice: string, choiceIndex: number) => (
+          <div className="border rounded-lg p-4">
+            <p className="text-gray-500">No questions found in this quiz.</p>
+          </div>
+        );
+      }
+
+      return (
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold">Quiz</h2>
+          {questions.map((question: any, index: number) => (
+            <div key={index} className="border rounded-lg p-4">
+              <h3 className="font-semibold mb-3">
+                Question {index + 1}: {question.question || 'Question text not available'}
+              </h3>
+              <div className="space-y-2">
+                {isArray(question.choices) && question.choices.length > 0 ? (
+                  question.choices.map((choice: string, choiceIndex: number) => (
                     <label key={choiceIndex} className="flex items-center space-x-2">
                       <input
                         type="radio"
@@ -69,149 +113,176 @@ export default function GeneratedContentPage() {
                       />
                       <span>{choice}</span>
                     </label>
-                  ))}
-                </div>
-                {question.explanation && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded">
-                    <strong>Explanation:</strong> {question.explanation}
-                  </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-sm">No choices available</p>
                 )}
+              </div>
+              {question.explanation && (
+                <div className="mt-3 p-3 bg-blue-50 rounded">
+                  <strong>Explanation:</strong> {question.explanation}
+                </div>
+              )}
+              {question.answer && (
                 <div className="mt-2 text-sm text-gray-600">
                   <strong>Correct Answer:</strong> {question.answer}
                 </div>
-              </div>
-            ))}
-          </div>
-        );
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
 
-      case 'assignment':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{payload.title || 'Assignment'}</h2>
-            
-            {payload.instructions && (
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-2">Instructions</h3>
-                <p className="whitespace-pre-wrap">{payload.instructions}</p>
-              </div>
-            )}
+    // Render Assignment content
+    if (contentType === 'assignment' || (isArray(payload?.assignment_tasks) && payload.assignment_tasks.length > 0)) {
+      const assignmentTasks = isArray(payload?.assignment_tasks) ? payload.assignment_tasks : [];
+      const learningObjectives = isArray(payload?.learning_objectives) ? payload.learning_objectives : [];
+      const rubric = isArray(payload?.rubric) ? payload.rubric : [];
 
-            {payload.learning_objectives && payload.learning_objectives.length > 0 && (
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-2">Learning Objectives</h3>
-                <ul className="list-disc list-inside space-y-1">
-                  {payload.learning_objectives.map((objective: string, index: number) => (
-                    <li key={index}>{objective}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+      return (
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold">{payload?.title || 'Assignment'}</h2>
+          
+          {payload?.instructions && (
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold mb-2">Instructions</h3>
+              <p className="whitespace-pre-wrap">{payload.instructions}</p>
+            </div>
+          )}
 
-            {payload.assignment_tasks && payload.assignment_tasks.length > 0 && (
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-2">Assignment Tasks</h3>
-                <div className="space-y-3">
-                  {payload.assignment_tasks.map((task: any, index: number) => (
-                    <div key={index} className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-medium">Task {task.task_number || index + 1}</h4>
+          {learningObjectives.length > 0 && (
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold mb-2">Learning Objectives</h3>
+              <ul className="list-disc list-inside space-y-1">
+                {learningObjectives.map((objective: string, index: number) => (
+                  <li key={index}>{objective}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {assignmentTasks.length > 0 ? (
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold mb-2">Assignment Tasks</h3>
+              <div className="space-y-3">
+                {assignmentTasks.map((task: any, index: number) => (
+                  <div key={index} className="bg-gray-50 rounded-lg p-3">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium">Task {task.task_number || index + 1}</h4>
+                      {task.points && (
                         <span className="text-sm text-gray-600">{task.points}</span>
-                      </div>
-                      <p className="text-sm text-gray-700">{task.description}</p>
-                      {task.bloom_level && (
-                        <span className="inline-block mt-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                          {task.bloom_level}
-                        </span>
                       )}
                     </div>
-                  ))}
-                </div>
+                    {task.description && (
+                      <p className="text-sm text-gray-700">{task.description}</p>
+                    )}
+                    {task.bloom_level && (
+                      <span className="inline-block mt-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                        {task.bloom_level}
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
-            )}
-
-            {payload.rubric && payload.rubric.length > 0 && (
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-2">Grading Rubric</h3>
-                <ul className="list-disc list-inside space-y-1">
-                  {payload.rubric.map((criterion: string, index: number) => (
-                    <li key={index}>{criterion}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {payload.estimated_time && (
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-2">Estimated Time</h3>
-                <p>{payload.estimated_time}</p>
-              </div>
-            )}
-          </div>
-        );
-
-      case 'summary':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{payload.title || 'Summary'}</h2>
-            
+            </div>
+          ) : (
             <div className="border rounded-lg p-4">
-              <div className="prose max-w-none">
-                {typeof payload === 'string' ? (
-                  <p className="whitespace-pre-wrap">{payload}</p>
-                ) : payload.content ? (
-                  <p className="whitespace-pre-wrap">{payload.content}</p>
-                ) : (
-                  <p>Summary content not available</p>
-                )}
-              </div>
+              <p className="text-gray-500">No assignment tasks found.</p>
             </div>
+          )}
 
-            {payload.key_points && payload.key_points.length > 0 && (
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-2">Key Points</h3>
-                <ul className="list-disc list-inside space-y-1">
-                  {payload.key_points.map((point: string, index: number) => (
-                    <li key={index}>{point}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-2">
-              {payload.length && (
-                <span className="px-2 py-1 bg-green-100 text-green-800 text-sm rounded">
-                  Length: {payload.length}
-                </span>
-              )}
-              {payload.bloom_level && (
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded">
-                  Bloom's Level: {payload.bloom_level}
-                </span>
-              )}
-              {payload.page_range && (
-                <span className="px-2 py-1 bg-purple-100 text-purple-800 text-sm rounded">
-                  Pages: {payload.page_range}
-                </span>
-              )}
-              {payload.word_count && (
-                <span className="px-2 py-1 bg-orange-100 text-orange-800 text-sm rounded">
-                  {payload.word_count}
-                </span>
-              )}
+          {rubric.length > 0 && (
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold mb-2">Grading Rubric</h3>
+              <ul className="list-disc list-inside space-y-1">
+                {rubric.map((criterion: string, index: number) => (
+                  <li key={index}>{criterion}</li>
+                ))}
+              </ul>
             </div>
-          </div>
-        );
+          )}
 
-      default:
-        return (
-          <div className="border rounded-lg p-4">
-            <h3 className="font-semibold mb-2">Generated Content</h3>
-            <pre className="whitespace-pre-wrap text-sm">
-              {JSON.stringify(payload, null, 2)}
-            </pre>
-          </div>
-        );
+          {payload?.estimated_time && (
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold mb-2">Estimated Time</h3>
+              <p>{payload.estimated_time}</p>
+            </div>
+          )}
+        </div>
+      );
     }
+
+    // Render Summary content
+    if (contentType === 'summary' || isArray(payload?.key_points) || payload?.content || typeof payload === 'string') {
+      const keyPoints = isArray(payload?.key_points) ? payload.key_points : [];
+
+      return (
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold">{payload?.title || 'Summary'}</h2>
+          
+          <div className="border rounded-lg p-4">
+            <div className="prose max-w-none">
+              {typeof payload === 'string' ? (
+                <p className="whitespace-pre-wrap">{payload}</p>
+              ) : payload?.content ? (
+                <p className="whitespace-pre-wrap">{payload.content}</p>
+              ) : (
+                <p className="text-gray-500">Summary content not available</p>
+              )}
+            </div>
+          </div>
+
+          {keyPoints.length > 0 && (
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold mb-2">Key Points</h3>
+              <ul className="list-disc list-inside space-y-1">
+                {keyPoints.map((point: string, index: number) => (
+                  <li key={index}>{point}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {payload?.length && (
+              <span className="px-2 py-1 bg-green-100 text-green-800 text-sm rounded">
+                Length: {payload.length}
+              </span>
+            )}
+            {payload?.bloom_level && (
+              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded">
+                Bloom's Level: {payload.bloom_level}
+              </span>
+            )}
+            {payload?.page_range && (
+              <span className="px-2 py-1 bg-purple-100 text-purple-800 text-sm rounded">
+                Pages: {payload.page_range}
+              </span>
+            )}
+            {payload?.word_count && (
+              <span className="px-2 py-1 bg-orange-100 text-orange-800 text-sm rounded">
+                {payload.word_count}
+              </span>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Fallback for unknown content types
+    return (
+      <div className="border rounded-lg p-4">
+        <h3 className="font-semibold mb-2">Generated Content</h3>
+        {payload ? (
+          <pre className="whitespace-pre-wrap text-sm">
+            {JSON.stringify(payload, null, 2)}
+          </pre>
+        ) : (
+          <p className="text-gray-500">No content found</p>
+        )}
+      </div>
+    );
   };
 
   if (loading) {
@@ -283,7 +354,7 @@ export default function GeneratedContentPage() {
           {renderContent()}
 
           {/* Metadata Display */}
-          {generatedItem.payload.metadata && (
+          {generatedItem.payload?.metadata && (
             <div className="mt-8 p-4 bg-gray-50 rounded-lg">
               <h3 className="font-semibold mb-3">Generation Details</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -344,16 +415,16 @@ export default function GeneratedContentPage() {
             <button
               onClick={() => {
                 const data = {
-                  type: generatedItem.generated_type,
-                  content: generatedItem.payload,
-                  settings: generatedItem.generation_settings,
+                  type: generatedItem.generated_type || 'unknown',
+                  content: generatedItem.payload || null,
+                  settings: generatedItem.generation_settings || null,
                   generated_at: generatedItem.created_at
                 };
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${generatedItem.generated_type}-${Date.now()}.json`;
+                a.download = `${generatedItem.generated_type || 'content'}-${Date.now()}.json`;
                 a.click();
                 URL.revokeObjectURL(url);
               }}
