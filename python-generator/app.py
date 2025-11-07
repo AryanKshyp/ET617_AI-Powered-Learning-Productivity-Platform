@@ -14,8 +14,8 @@ import json
 # ============================================================================
 
 # Initialize Supabase
-SUPABASE_URL = os.getenv("SUPABASE_URL", "your-supabase-url")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "your-supabase-key")
+SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Initialize Gemini
