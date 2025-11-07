@@ -1,13 +1,20 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { getRequestUser } from '@/lib/getRequestUser';
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
+    const authResult = await getRequestUser(req);
+    if (!authResult.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { data, error } = await supabaseAdmin
       .from('courses')
       .select('*')
       .eq('id', params.id)
-      .single();
+      .eq('owner_id', authResult.user.id)
+      .maybeSingle();
 
     if (error) {
       return NextResponse.json({ error: String(error) }, { status: 500 });
@@ -25,6 +32,11 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
+    const authResult = await getRequestUser(req);
+    if (!authResult.user) {
+      return NextResponse.json({error: 'Unauthorized'}, { status: 401 });
+    }
+
     const body = await req.json();
     const { title, description } = body;
 
@@ -32,11 +44,16 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       .from('courses')
       .update({ title, description })
       .eq('id', params.id)
+      .eq('owner_id', authResult.user.id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       return NextResponse.json({ error: String(error) }, { status: 500 });
+    }
+
+    if (!data) {
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
     return NextResponse.json({ data });
@@ -47,13 +64,23 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
-    const { error } = await supabaseAdmin
+    const authResult = await getRequestUser(req);
+    if (!authResult.user) {
+      return NextResponse.json({error: 'Unauthorized'}, { status: 401 });
+    }
+
+    const { error, count } = await supabaseAdmin
       .from('courses')
-      .delete()
-      .eq('id', params.id);
+      .delete({ count: 'exact' })
+      .eq('id', params.id)
+      .eq('owner_id', authResult.user.id);
 
     if (error) {
       return NextResponse.json({ error: String(error) }, { status: 500 });
+    }
+
+    if (!count) {
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
     return NextResponse.json({ success: true });

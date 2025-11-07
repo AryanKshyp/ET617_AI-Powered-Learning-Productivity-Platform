@@ -5,6 +5,7 @@ export default function Header() {
       <nav className="flex gap-6">
         <a href="/dashboard" className="hover:text-purple-600">Dashboard</a>
         <a href="/productivity" className="hover:text-purple-600">Productivity</a>
+        <a href="/profile" className="hover:text-purple-600">Profile</a>
       </nav>
     </header>
   );

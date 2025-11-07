@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { getRequestUser } from '@/lib/getRequestUser'
 
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url)
-    const owner_id = searchParams.get('owner_id')
-    const query = supabaseAdmin.from('courses').select('*').order('created_at', { ascending: false })
-    const { data, error } = owner_id ? await query.eq('owner_id', owner_id) : await query
+    const authResult = await getRequestUser(req)
+    if (!authResult.user) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 })
+    }
+
+    const query = supabaseAdmin
+      .from('courses')
+      .select('*')
+      .eq('owner_id', authResult.user.id)
+      .order('created_at', { ascending: false })
+    const { data, error } = await query
     if (error) return NextResponse.json({ error: String(error) }, { status: 500 })
     return NextResponse.json({ data })
   } catch (e) {
@@ -16,10 +24,19 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const authResult = await getRequestUser(req)
+    if (!authResult.user) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 })
+    }
+
     const body = await req.json()
-    const { owner_id, title, description } = body
+    const { title, description } = body
     if (!title) return NextResponse.json({ error: 'title required' }, { status: 400 })
-    const { data, error } = await supabaseAdmin.from('courses').insert({ owner_id, title, description }).select().single()
+    const { data, error } = await supabaseAdmin
+      .from('courses')
+      .insert({ owner_id: authResult.user.id, title, description })
+      .select()
+      .single()
     if (error) return NextResponse.json({ error: String(error) }, { status: 500 })
     return NextResponse.json({ data })
   } catch (e) {

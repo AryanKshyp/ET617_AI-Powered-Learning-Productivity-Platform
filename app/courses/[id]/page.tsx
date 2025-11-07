@@ -45,21 +45,38 @@ export default function CoursePage() {
   const loadCourseData = async () => {
     try {
       setLoading(true);
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        throw sessionError;
+      }
+
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        router.replace('/login');
+        return;
+      }
       
       // Load course details
-      const courseRes = await fetch(`/api/courses/${params.id}`);
+      const authHeaders = { Authorization: `Bearer ${accessToken}` };
+      const courseRes = await fetch(`/api/courses/${params.id}`, {
+        headers: authHeaders,
+      });
       const courseData = await courseRes.json();
       if (courseData.data) {
         setCourse(courseData.data);
       }
 
       // Load materials
-      const materialsRes = await fetch(`/api/materials?course_id=${params.id}`);
+      const materialsRes = await fetch(`/api/materials?course_id=${params.id}`, {
+        headers: authHeaders,
+      });
       const materialsData = await materialsRes.json();
       setMaterials(materialsData.data || []);
 
       // Load generated items
-      const generatedRes = await fetch(`/api/generated?course_id=${params.id}`);
+      const generatedRes = await fetch(`/api/generated?course_id=${params.id}`, {
+        headers: authHeaders,
+      });
       const generatedData = await generatedRes.json();
       setGeneratedItems(generatedData.data || []);
 

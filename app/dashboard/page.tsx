@@ -1,6 +1,7 @@
 "use client";
 
 import Header from "@/components/dashhome/header";
+import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -32,7 +33,22 @@ export default function DashboardPage() {
     setLoadingCourses(true);
     (async () => {
       try {
-        const res = await fetch("/api/courses");
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          throw sessionError;
+        }
+
+        const accessToken = sessionData.session?.access_token;
+        if (!accessToken) {
+          setCourses([]);
+          return;
+        }
+
+        const res = await fetch("/api/courses", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
         const json = await res.json();
         if (cancelled) return;
         const loadedCourses: Course[] = json.data || [];
@@ -183,9 +199,22 @@ export default function DashboardPage() {
     if (!newCourseTitle.trim()) return;
     try {
       setCreatingCourse(true);
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        throw sessionError;
+      }
+
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        throw new Error("You must be logged in to create a course.");
+      }
+
       const res = await fetch("/api/courses", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({ title: newCourseTitle.trim() }),
       });
       const json = await res.json();
