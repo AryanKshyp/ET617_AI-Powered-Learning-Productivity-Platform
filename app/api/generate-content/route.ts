@@ -186,18 +186,47 @@ export async function POST(req: Request) {
     }
 
     // Save generated content to database
-    const { data: generatedItem, error: saveError } = await supabaseAdmin
+    // Try with generation_settings first, fallback without it if column doesn't exist
+    let insertData: any = {
+      course_id,
+      material_id,
+      generated_type,
+      payload: generatedContent,
+      generator: 'python-rag-pipeline',
+      generation_settings: settings
+    };
+    
+    let { data: generatedItem, error: saveError } = await supabaseAdmin
       .from('generated_items')
-      .insert({
+      .insert(insertData)
+      .select()
+      .single();
+
+    // If error is about missing generation_settings column, retry without it
+    const errorMsg = saveError?.message || JSON.stringify(saveError) || '';
+    const lowerMsg = errorMsg.toLowerCase();
+    if (saveError && (
+      lowerMsg.includes('generation_settings') || 
+      (lowerMsg.includes('column') && lowerMsg.includes('schema cache') && lowerMsg.includes('generation_settings'))
+    )) {
+      console.warn('generation_settings column not found, retrying without it:', errorMsg);
+      insertData = {
         course_id,
         material_id,
         generated_type,
         payload: generatedContent,
-        generation_settings: settings,
         generator: 'python-rag-pipeline'
-      })
-      .select()
-      .single();
+      };
+      
+      const retryResult = await supabaseAdmin
+        .from('generated_items')
+        .insert(insertData)
+        .select()
+        .single();
+      
+      generatedItem = retryResult.data;
+      saveError = retryResult.error;
+    }
 
     if (saveError) {
       console.error('Database save error:', saveError);
