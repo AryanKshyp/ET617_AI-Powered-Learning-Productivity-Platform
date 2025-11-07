@@ -6,7 +6,7 @@ export async function GET(req: Request) {
   try {
     const authResult = await getRequestUser(req)
     if (!authResult.user) {
-      return NextResponse.json({ error: authResult.error }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const query = supabaseAdmin
