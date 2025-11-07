@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
+from collections import OrderedDict
 import os
 from supabase import create_client, Client
 import google.generativeai as genai
@@ -266,6 +267,80 @@ Requirements:
     return prompt
 
 
+def normalize_choice_entries(choices: Any) -> List[Dict[str, str]]:
+    """Normalize choices into a list of {key, text} dictionaries."""
+    normalized: List[Dict[str, str]] = []
+
+    if isinstance(choices, dict):
+        # Preserve ordering if already ordered, otherwise sort by key
+        items = choices.items()
+        if not isinstance(choices, OrderedDict):
+            items = sorted(items, key=lambda item: str(item[0]))
+        for idx, (key, value) in enumerate(items):
+            label = str(key).strip() or chr(65 + idx)
+            text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
+            normalized.append({
+                "key": label.upper(),
+                "text": text.strip()
+            })
+    elif isinstance(choices, list):
+        for idx, choice in enumerate(choices):
+            if isinstance(choice, dict):
+                label = choice.get("key") or choice.get("label") or chr(65 + idx)
+                text = choice.get("text") or choice.get("value") or ""
+            else:
+                label = chr(65 + idx)
+                text = str(choice)
+            normalized.append({
+                "key": str(label).strip().upper(),
+                "text": text.strip()
+            })
+
+    return [entry for entry in normalized if entry["text"]]
+
+
+def normalize_quiz_result(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Ensure quiz questions include normalized choices and derived answer text."""
+    questions = result.get("questions")
+    if not isinstance(questions, list):
+        return result
+
+    for question in questions:
+        if not isinstance(question, dict):
+            continue
+
+        raw_choices = question.get("choices", [])
+        normalized_choices = normalize_choice_entries(raw_choices)
+        question["choices"] = normalized_choices
+
+        # Derive answer text when possible
+        answer = question.get("answer")
+        answer_text = None
+        if isinstance(answer, str):
+            answer_clean = answer.strip()
+            # Attempt match on key (letter)
+            answer_text = next(
+                (c["text"] for c in normalized_choices if c["key"].upper() == answer_clean.upper()),
+                None
+            )
+            # Attempt match on text itself
+            if not answer_text:
+                answer_text = next(
+                    (c["text"] for c in normalized_choices if c["text"].strip().lower() == answer_clean.lower()),
+                    None
+                )
+        elif isinstance(answer, dict):
+            answer_text = answer.get("text") or answer.get("value")
+
+        # Store derived answer text if available
+        if answer_text:
+            question["answer_text"] = answer_text.strip()
+        else:
+            question.pop("answer_text", None)
+
+    return result
+
+
 def generate_with_gemini(query: str, full_text: str, generation_type: str,
                          bloom_level: Optional[str] = None, settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Generate content using Gemini with native JSON mode"""
@@ -296,6 +371,9 @@ def generate_with_gemini(query: str, full_text: str, generation_type: str,
         # 5. *** NEW: Simplified JSON parsing ***
         # The response.text is now a guaranteed JSON string
         result = json.loads(response.text)
+
+        if generation_type == "quiz":
+            result = normalize_quiz_result(result)
         
         # Add 'generated_from' to metadata
         if "metadata" in result:
@@ -345,15 +423,22 @@ def generate_fallback_response(query: str, generation_type: str,
     if generation_type == "quiz":
         num_questions = settings.get("num_questions", 5)
         metadata["total_questions"] = num_questions
-        questions = [
-            {
+        questions = []
+        for i in range(num_questions):
+            fallback_choices = [
+                {"key": "A", "text": "Option 1"},
+                {"key": "B", "text": "Option 2"},
+                {"key": "C", "text": "Option 3"},
+                {"key": "D", "text": "Option 4"}
+            ]
+            questions.append({
                 "question": f"Fallback: Based on the material, {query} (Question {i+1})",
-                "choices": {"A": "Option 1", "B": "Option 2", "C": "Option 3", "D": "Option 4"},
+                "choices": fallback_choices,
                 "answer": "A",
+                "answer_text": "Option 1",
                 "level": bloom_level,
-                "explanation": f"This is a fallback response. Generation failed."
-            } for i in range(num_questions)
-        ]
+                "explanation": "This is a fallback response. Generation failed."
+            })
         return {"questions": questions, "metadata": metadata}
     
     elif generation_type == "summary":

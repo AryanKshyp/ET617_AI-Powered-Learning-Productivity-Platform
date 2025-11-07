@@ -20,6 +20,9 @@ export default function GeneratedContentPage() {
   const router = useRouter();
   const [generatedItem, setGeneratedItem] = useState<GeneratedItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [revealedQuestions, setRevealedQuestions] = useState<Set<number>>(new Set());
+  const [revealedAnswers, setRevealedAnswers] = useState<Set<number>>(new Set());
+  const [selectedChoices, setSelectedChoices] = useState<Record<number, string>>({});
 
   useEffect(() => {
     loadGeneratedContent();
@@ -46,6 +49,87 @@ export default function GeneratedContentPage() {
   // Helper function to safely check if a value is an array
   const isArray = (value: any): value is any[] => {
     return Array.isArray(value);
+  };
+
+  const normalizeChoices = (choices: any): Array<{ key: string; text: string }> => {
+    if (!choices) return [];
+
+    if (Array.isArray(choices)) {
+      return choices
+        .map((choice, index) => {
+          if (choice && typeof choice === 'object') {
+            const key = (choice.key || choice.label || String.fromCharCode(65 + index)).toString().toUpperCase();
+            const text = (choice.text || choice.value || '').toString().trim();
+            return text ? { key, text } : null;
+          }
+          const text = choice !== undefined && choice !== null ? String(choice).trim() : '';
+          if (!text) return null;
+          return {
+            key: String.fromCharCode(65 + index),
+            text
+          };
+        })
+        .filter((choice): choice is { key: string; text: string } => Boolean(choice));
+    }
+
+    if (typeof choices === 'object') {
+      return Object.entries(choices).map(([key, value], index) => ({
+        key: (key || String.fromCharCode(65 + index)).toString().toUpperCase(),
+        text: value !== undefined && value !== null ? String(value).trim() : ''
+      })).filter(choice => choice.text);
+    }
+
+    return [];
+  };
+
+  const deriveAnswerDisplay = (
+    question: any,
+    normalizedChoices: Array<{ key: string; text: string }>,
+    hasChoices: boolean
+  ): string => {
+    const answerText = typeof question?.answer_text === 'string' ? question.answer_text.trim() : '';
+    const rawAnswer = typeof question?.answer === 'string' ? question.answer.trim() : '';
+
+    if (hasChoices) {
+      const match = normalizedChoices.find((choice) => {
+        const choiceKey = choice.key.toUpperCase();
+        const answerKeyMatch = rawAnswer ? choiceKey === rawAnswer.toUpperCase() : false;
+        const answerTextMatch = rawAnswer
+          ? choice.text.toLowerCase() === rawAnswer.toLowerCase()
+          : false;
+        const derivedTextMatch = answerText
+          ? choice.text.toLowerCase() === answerText.toLowerCase()
+          : false;
+        const derivedKeyMatch = answerText
+          ? choiceKey === answerText.toUpperCase()
+          : false;
+        return answerKeyMatch || answerTextMatch || derivedTextMatch || derivedKeyMatch;
+      });
+
+      if (match) {
+        return `${match.key}. ${match.text}`;
+      }
+
+      if (answerText) {
+        return answerText;
+      }
+
+      if (rawAnswer && rawAnswer.length > 1) {
+        return rawAnswer;
+      }
+
+      return '';
+    }
+
+    if (answerText) {
+      return answerText;
+    }
+
+    if (rawAnswer && rawAnswer.length > 1) {
+      return rawAnswer;
+    }
+
+    return '';
   };
 
   // Helper function to detect the content type based on payload structure
@@ -93,43 +177,121 @@ export default function GeneratedContentPage() {
         );
       }
 
+      const toggleQuestionReveal = (index: number) => {
+        const newRevealed = new Set(revealedQuestions);
+        if (newRevealed.has(index)) {
+          newRevealed.delete(index);
+          // Also hide answer if question is hidden
+          const newRevealedAnswers = new Set(revealedAnswers);
+          newRevealedAnswers.delete(index);
+          setRevealedAnswers(newRevealedAnswers);
+          setSelectedChoices((prev) => {
+            const { [index]: _removed, ...rest } = prev;
+            return rest;
+          });
+        } else {
+          newRevealed.add(index);
+        }
+        setRevealedQuestions(newRevealed);
+      };
+
+      const toggleAnswerReveal = (index: number) => {
+        const newRevealed = new Set(revealedAnswers);
+        if (newRevealed.has(index)) {
+          newRevealed.delete(index);
+        } else {
+          newRevealed.add(index);
+        }
+        setRevealedAnswers(newRevealed);
+      };
+
+      const handleChoiceSelect = (questionIndex: number, choiceKey: string) => {
+        setSelectedChoices((prev) => ({ ...prev, [questionIndex]: choiceKey }));
+        const newRevealed = new Set(revealedAnswers);
+        newRevealed.add(questionIndex);
+        setRevealedAnswers(newRevealed);
+      };
+
       return (
         <div className="space-y-6">
           <h2 className="text-2xl font-bold">Quiz</h2>
-          {questions.map((question: any, index: number) => (
-            <div key={index} className="border rounded-lg p-4">
-              <h3 className="font-semibold mb-3">
-                Question {index + 1}: {question.question || 'Question text not available'}
-              </h3>
-              <div className="space-y-2">
-                {isArray(question.choices) && question.choices.length > 0 ? (
-                  question.choices.map((choice: string, choiceIndex: number) => (
-                    <label key={choiceIndex} className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        name={`question-${index}`}
-                        value={choice}
-                        className="form-radio"
-                      />
-                      <span>{choice}</span>
-                    </label>
-                  ))
-                ) : (
-                  <p className="text-gray-500 text-sm">No choices available</p>
+          {questions.map((question: any, index: number) => {
+            const normalizedChoices = normalizeChoices(question.choices);
+            const hasChoices = normalizedChoices.length > 0;
+            const showOptions = revealedQuestions.has(index);
+            const showAnswer = revealedAnswers.has(index);
+            const answerDisplay = deriveAnswerDisplay(question, normalizedChoices, hasChoices);
+            const canRevealDetails = Boolean(answerDisplay) || Boolean(question.explanation);
+            
+            return (
+              <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div 
+                  className="font-semibold mb-3 cursor-pointer flex items-center justify-between"
+                  onClick={() => toggleQuestionReveal(index)}
+                >
+                  <span>
+                    Question {index + 1}: {question.question || 'Question text not available'}
+                  </span>
+                  <span className="text-sm text-gray-500 ml-2">
+                    {showOptions ? '▼' : '▶'}
+                  </span>
+                </div>
+                
+                {showOptions && (
+                  <div className="space-y-2 mb-3">
+                    {hasChoices ? (
+                      normalizedChoices.map((choice, choiceIndex: number) => (
+                        <label key={choiceIndex} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
+                          <input
+                            type="radio"
+                            name={`question-${index}`}
+                            value={choice.text}
+                            className="form-radio"
+                            onChange={() => handleChoiceSelect(index, choice.key)}
+                            checked={selectedChoices[index] === choice.key}
+                          />
+                          <span>
+                            <span className="font-medium mr-2 text-gray-600">{choice.key}.</span>
+                            {choice.text}
+                          </span>
+                        </label>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-sm">No choices available</p>
+                    )}
+                  </div>
+                )}
+                
+                {showOptions && canRevealDetails && (
+                  <div className="mt-3">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleAnswerReveal(index);
+                      }}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                    >
+                      {showAnswer ? 'Hide Answer' : 'Show Answer'}
+                    </button>
+                  </div>
+                )}
+                
+                {showAnswer && answerDisplay && (
+                  <div className="mt-3 p-3 bg-green-50 rounded border border-green-200">
+                    <strong className="text-green-800">Correct Answer:</strong>
+                    <p className="text-green-900 mt-1">{answerDisplay}</p>
+                  </div>
+                )}
+                
+                {showAnswer && question.explanation && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
+                    <strong className="text-blue-800">Explanation:</strong>
+                    <p className="text-blue-900 mt-1">{question.explanation}</p>
+                  </div>
                 )}
               </div>
-              {question.explanation && (
-                <div className="mt-3 p-3 bg-blue-50 rounded">
-                  <strong>Explanation:</strong> {question.explanation}
-                </div>
-              )}
-              {question.answer && (
-                <div className="mt-2 text-sm text-gray-600">
-                  <strong>Correct Answer:</strong> {question.answer}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       );
     }
@@ -404,35 +566,6 @@ export default function GeneratedContentPage() {
             </div>
           )}
 
-          {/* Actions */}
-          <div className="mt-8 flex gap-4">
-            <button
-              onClick={() => window.print()}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-            >
-              Print
-            </button>
-            <button
-              onClick={() => {
-                const data = {
-                  type: generatedItem.generated_type || 'unknown',
-                  content: generatedItem.payload || null,
-                  settings: generatedItem.generation_settings || null,
-                  generated_at: generatedItem.created_at
-                };
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${generatedItem.generated_type || 'content'}-${Date.now()}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Download JSON
-            </button>
-          </div>
         </div>
       </div>
     </div>

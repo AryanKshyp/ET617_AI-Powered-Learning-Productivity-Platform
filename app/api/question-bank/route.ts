@@ -1,45 +1,68 @@
 import { NextResponse } from 'next/server';
 
-type Paper = { id: number; title: string; year: number | null; count: number | null };
+type Paper = {
+  id: number;
+  title: string;
+  year: number | null;
+  resourceType: 'pyq' | 'question_bank';
+};
 
-let SAMPLE_PAPERS: Paper[] = [
-  { id: 1, title: 'PYQ 2024 (1)', year: 2024, count: 1 },
-  { id: 2, title: 'PYQ 2024 (2)', year: 2024, count: 2 },
-  { id: 3, title: 'PYQ 2023 (1)', year: 2023, count: 1 },
-  { id: 4, title: 'PYQ 2023 (2)', year: 2023, count: 2 },
-  { id: 5, title: 'PYQ 2022 (1)', year: 2022, count: 1 },
-  { id: 6, title: 'PYQ 2022 (2)', year: 2022, count: 2 },
-  { id: 7, title: 'PYQ 2021 (1)', year: 2021, count: 1 },
-  { id: 8, title: 'Question Bank', year: null, count: null }
-];
+const papersByCourse: Record<string, Paper[]> = {};
 
-export async function GET() {
-  return NextResponse.json({ success: true, data: SAMPLE_PAPERS });
+function getCourseId(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const courseId = searchParams.get('course_id');
+  return courseId?.trim() || null;
+}
+
+export async function GET(req: Request) {
+  const courseId = getCourseId(req);
+  if (!courseId) {
+    return NextResponse.json({ error: 'course_id query parameter is required' }, { status: 400 });
+  }
+
+  return NextResponse.json({ success: true, data: papersByCourse[courseId] || [] });
 }
 
 export async function POST(req: Request) {
+  const courseId = getCourseId(req);
+  if (!courseId) {
+    return NextResponse.json({ error: 'course_id query parameter is required' }, { status: 400 });
+  }
+
   try {
     const contentType = req.headers.get('content-type') || '';
+    let title = 'Uploaded Paper';
+    let year: number | null = null;
+    let resourceType: Paper['resourceType'] = 'question_bank';
+
     if (contentType.includes('application/json')) {
       const body = await req.json();
-      const title: string = body?.title || 'Uploaded Paper';
-      const year: number | null = typeof body?.year === 'number' ? body.year : null;
-      const count: number | null = typeof body?.count === 'number' ? body.count : 1;
-      const newItem: Paper = { id: Date.now(), title, year, count };
-      SAMPLE_PAPERS = [newItem, ...SAMPLE_PAPERS];
-      return NextResponse.json({ success: true, data: newItem });
-    }
-
-    // Accept basic multipart without storing the file (demo only)
-    if (contentType.includes('multipart/form-data')) {
+      title = typeof body?.title === 'string' && body.title.trim() ? body.title.trim() : title;
+      year = typeof body?.year === 'number' ? body.year : null;
+      resourceType = body?.resourceType === 'pyq' ? 'pyq' : 'question_bank';
+    } else if (contentType.includes('multipart/form-data')) {
       const form = await req.formData();
-      const title = String(form.get('title') || 'Uploaded Paper');
-      const newItem: Paper = { id: Date.now(), title, year: null, count: 1 };
-      SAMPLE_PAPERS = [newItem, ...SAMPLE_PAPERS];
-      return NextResponse.json({ success: true, data: newItem });
+      const formTitle = form.get('title');
+      const formType = form.get('resourceType');
+      title = typeof formTitle === 'string' && formTitle.trim() ? formTitle.trim() : title;
+      resourceType = formType === 'pyq' ? 'pyq' : 'question_bank';
+      const parsedYear = Number(form.get('year'));
+      year = Number.isFinite(parsedYear) ? parsedYear : null;
+    } else {
+      return NextResponse.json({ error: 'Unsupported content type' }, { status: 400 });
     }
 
-    return NextResponse.json({ error: 'Unsupported content type' }, { status: 400 });
+    const newItem: Paper = {
+      id: Date.now(),
+      title,
+      year,
+      resourceType,
+    };
+
+    papersByCourse[courseId] = [newItem, ...(papersByCourse[courseId] || [])];
+
+    return NextResponse.json({ success: true, data: newItem });
   } catch (e) {
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }

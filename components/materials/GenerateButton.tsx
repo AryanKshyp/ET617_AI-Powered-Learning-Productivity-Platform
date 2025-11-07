@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type Material = {
   id: string;
@@ -23,6 +23,13 @@ export default function GenerateButton({ material, courseId }: GenerateButtonPro
   const [summaryLength, setSummaryLength] = useState<'short' | 'medium' | 'long'>('medium');
   const [bloomLevel, setBloomLevel] = useState<'remember' | 'understand' | 'apply' | 'analyze' | 'evaluate' | 'create'>('apply');
   const [loading, setLoading] = useState(false);
+
+  // Reset page range to end of PDF when modal opens
+  useEffect(() => {
+    if (showModal && material.material_type === 'pdf' && material.page_count) {
+      setPageRange({ start: 1, end: material.page_count });
+    }
+  }, [showModal, material.material_type, material.page_count]);
 
   const handleGenerate = async () => {
     // Validate page range

@@ -276,6 +276,13 @@ function GenerationModal({
   const [bloomLevel, setBloomLevel] = useState<'remember' | 'understand' | 'apply' | 'analyze' | 'evaluate' | 'create'>('apply');
   const [loading, setLoading] = useState(false);
 
+  // Reset page range to end of PDF when component mounts or material changes
+  useEffect(() => {
+    if (material.material_type === 'pdf' && material.page_count) {
+      setPageRange({ start: 1, end: material.page_count });
+    }
+  }, [material.material_type, material.page_count]);
+
   const handleGenerate = async () => {
     // Validate page range
     if (material.material_type === 'pdf' && material.page_count) {
