@@ -43,6 +43,7 @@ class GenerateRequest(BaseModel):
     bloom_level: Optional[str] = None
     material_meta: Optional[Dict[str, Any]] = None
     pdf_id: Optional[str] = None  # Supabase storage PDF identifier
+    bucket_name: Optional[str] = "materials"  # Supabase storage bucket name
     settings: Optional[Dict[str, Any]] = None  # Additional generation settings
 
 class PDFProcessRequest(BaseModel):
@@ -408,7 +409,8 @@ def generate(req: GenerateRequest):
         
         # If PDF ID provided, extract text from PDF
         if req.pdf_id:
-            pdf_bytes = pdf_processor.download_pdf_from_supabase(req.pdf_id)
+            bucket_name = req.bucket_name or "materials"
+            pdf_bytes = pdf_processor.download_pdf_from_supabase(req.pdf_id, bucket_name)
             full_text = pdf_processor.extract_text_from_pdf(pdf_bytes)
         else:
             # Use provided text directly

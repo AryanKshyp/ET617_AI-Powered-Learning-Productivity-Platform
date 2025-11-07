@@ -105,6 +105,7 @@ export async function POST(req: Request) {
           bloom_level: settings.bloom_level,
           material_meta: { id: material_id },
           pdf_id: material.file_path,
+          bucket_name: 'materials',  // Specify the correct bucket name
           settings: settings
         };
       } else {
@@ -114,6 +115,7 @@ export async function POST(req: Request) {
           bloom_level: settings.bloom_level,
           material_meta: { id: material_id },
           pdf_id: material.file_path,
+          bucket_name: 'materials',  // Specify the correct bucket name
           settings: settings
         };
       }
