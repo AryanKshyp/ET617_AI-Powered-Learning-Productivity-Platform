@@ -4,7 +4,7 @@ services:
     env: python
     region: oregon
     plan: starter  # Use 'starter' for paid or 'free' for free tier
-    buildCommand: pip install --upgrade pip setuptools wheel && grep -v "^pywin32" requirements.txt | grep -v "^pyreadline3" | grep -v "^#" | grep -v "^$" > requirements-clean.txt && pip install --no-cache-dir -r requirements-clean.txt
+    buildCommand: pip install --upgrade pip setuptools wheel && pip install --no-cache-dir -r requirements.txt
     startCommand: python app.py
     healthCheckPath: /
     envVars:
@@ -13,8 +13,6 @@ services:
       - key: SUPABASE_KEY
         sync: false
       - key: GEMINI_API_KEY
-        sync: false
-      - key: COHERE_API_KEY
         sync: false
       - key: PYTHON_VERSION
         value: 3.11
