@@ -14,7 +14,10 @@ export default function GeneratePage() {
   const runPython = async () => {
     setLoading(true)
     try {
-      const generatorUrl = process.env.NEXT_PUBLIC_PYTHON_GENERATOR_URL as string
+      // Use production URL
+      const baseUrl = process.env.NEXT_PUBLIC_PYTHON_GENERATOR_URL || 'https://rag-pipeline-nm08.onrender.com';
+      const generatorUrl = baseUrl.endsWith('/generate') ? baseUrl : `${baseUrl.replace(/\/$/, '')}/generate`;
+      
       if (!generatorUrl) {
         setLoading(false)
         return

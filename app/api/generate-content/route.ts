@@ -69,9 +69,11 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    // Call Python generator service (expects full endpoint URL, e.g., http://localhost:8000/generate)
+    // Call Python generator service (expects full endpoint URL, e.g., https://rag-pipeline-nm08.onrender.com/generate)
     // Note: Server-side routes use process.env (not NEXT_PUBLIC_ prefix)
-    const pythonGeneratorUrl = process.env.PYTHON_GENERATOR_URL || process.env.NEXT_PUBLIC_PYTHON_GENERATOR_URL || 'http://localhost:8000/generate';
+    const baseUrl = process.env.PYTHON_GENERATOR_URL || process.env.NEXT_PUBLIC_PYTHON_GENERATOR_URL || 'https://rag-pipeline-nm08.onrender.com';
+    // Ensure the URL ends with /generate
+    const pythonGeneratorUrl = baseUrl.endsWith('/generate') ? baseUrl : `${baseUrl.replace(/\/$/, '')}/generate`;
     
     if (!pythonGeneratorUrl) {
       return NextResponse.json({ 

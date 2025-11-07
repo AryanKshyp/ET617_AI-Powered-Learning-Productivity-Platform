@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import Link from 'next/link'
 import PDFViewer from '@/components/PDFViewer'
+import GenerateButton from '@/components/materials/GenerateButton'
 
 async function getMaterial(id: string) {
   const { data, error } = await supabaseAdmin.from('materials').select('*').eq('id', id).single()
@@ -67,10 +68,9 @@ export default async function MaterialPage({ params }: { params: { id: string } 
         )}
       </div>
 
-      {(material.material_type === 'pdf' || material.material_type === 'note') && (
-        <div className="bg-white rounded-xl shadow p-4 space-x-3">
-          <Link className="px-3 py-2 bg-purple-700 text-white rounded hover:bg-purple-800" href={`/materials/${params.id}/generate?type=assignment`}>Create Assignment</Link>
-          <Link className="px-3 py-2 bg-purple-700 text-white rounded hover:bg-purple-800" href={`/materials/${params.id}/generate?type=quiz`}>Create Quiz (Bloom)</Link>
+      {(material.material_type === 'pdf' || material.material_type === 'note') && material.course_id && (
+        <div className="bg-white rounded-xl shadow p-4">
+          <GenerateButton material={material} courseId={material.course_id} />
         </div>
       )}
     </div>
